@@ -45,14 +45,13 @@ type EquipmentRow = {
   type: string;
   name: string;
   summary: string;
-  description: string | null;
+  description: string;
   image: string;
   location: string;
   capacity: number;
   stock: number;
   price_pence: number;
   amenities: string | null;
-  active: number;
   created_at: number;
 };
 
@@ -86,9 +85,22 @@ function presentHike(row: HikeRow) {
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean),
+    spotsTotal: row.spots_total,
+    spotsLeft: row.spots_left,
     pricePence: row.price_pence,
     priceGbp: Math.round(row.price_pence / 100),
+    heroBullets: deriveHeroBullets(row),
   };
+}
+
+function deriveHeroBullets(row: HikeRow): string[] {
+  const bullets: string[] = [];
+  if (row.location) bullets.push(`Start: ${row.location}`);
+  if (row.duration) bullets.push(`Duration: ${row.duration}`);
+  if (row.difficulty) bullets.push(`Difficulty: ${row.difficulty}`);
+  if (row.guide) bullets.push(`Lead guide: ${row.guide}`);
+  if (row.price_pence === 0) bullets.push("Free to attend");
+  return bullets;
 }
 
 function presentEquipment(row: {
@@ -100,18 +112,32 @@ function presentEquipment(row: {
   description: string | null;
   image: string;
   location: string;
-  active: number;
   created_at: number;
+  summary?: string;
+  unit_label?: string;
+  total_units?: number;
+  available_units?: number;
+  features?: string | null;
 }) {
   return {
     id: row.id,
     name: row.name,
     type: row.type,
-    capacity: row.capacity,
-    pricePerNightGbp: Math.round(row.price_pence / 100),
-    description: row.description,
+    summary: row.summary ?? "",
+    description: row.description ?? "",
     image: row.image,
     location: row.location,
+    capacity: row.capacity,
+    pricePerNightPence: row.price_pence,
+    pricePerNightGbp: Math.round(row.price_pence / 100),
+    unitLabel: row.unit_label ?? "per night",
+    totalUnits: row.total_units ?? 0,
+    availableUnits: row.available_units ?? 0,
+    features: (row.features ?? "")
+      .split(",")
+      .map((f) => f.trim())
+      .filter(Boolean),
+    active: (row.available_units ?? 0) > 0,
     createdAt: row.created_at,
   };
 }
@@ -248,7 +274,7 @@ export function mountRoutes(app: Hono) {
     if (type) {
       rows = db
         .query<EquipmentRow, [string]>(
-          "SELECT * FROM equipment  AND type = ? ORDER BY type, price_pence",
+          "SELECT * FROM equipment WHERE type = ? ORDER BY type, price_pence",
         )
         .all(type);
     } else {
@@ -338,7 +364,7 @@ export function mountRoutes(app: Hono) {
         )
         .get(body.equipmentId, body.endDate, body.startDate);
       const booked = overlapping?.total ?? 0;
-      if (booked + body.quantity > item.stock) {
+      if (booked + body.units > item.stock) {
         return c.json(
           {
             error: `Only ${Math.max(0, item.stock - booked)} of this item are available for those dates.`,
@@ -534,6 +560,7 @@ export function mountRoutes(app: Hono) {
           body.location,
           Math.round(body.pricePerNightGbp * 100),
           body.capacity,
+          body.stock,
           body.stock,
           body.stock,
           body.amenities.join(","),
