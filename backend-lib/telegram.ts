@@ -1,13 +1,13 @@
 // Telegram helpers. Primary transport: Bot API via fetch.
 // https://core.telegram.org/bots/api
 //
-// All outbound messages route to a single admin chat id configured via
-// `TELEGRAM_ADMIN_CHAT`. Inbound updates (text + photos) come in on a
-// webhook registered at /api/telegram/webhook.
-//
-// The bot is intentionally read-only from the public web: only the
-// allow-listed admin chat can issue commands. Any message from another
-// chat id is silently dropped.
+// All outbound messages route to chats whose chat id is registered in
+// the telegram_allowlist table. The env var `TELEGRAM_ADMIN_CHAT` is
+// honoured as a safety net when the table is empty so the bootstrap
+// admin is never locked out. Inbound updates (text + photos) come in
+// on a webhook registered at /api/telegram/webhook.
+
+import { db } from "./db";
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
 
@@ -152,7 +152,15 @@ export async function editMessageText(
 
 export function isAllowedChat(chatId: unknown): boolean {
   if (typeof chatId !== "number" && typeof chatId !== "string") return false;
-  const allowed = adminChatId();
-  if (!allowed) return false;
-  return String(chatId) === String(allowed);
+  const key = String(chatId);
+  const row = db
+    .query<{ c: number }, [string]>(
+      "SELECT COUNT(*) as c FROM telegram_allowlist WHERE chat_id = ?",
+    )
+    .get(key);
+  if (row && row.c > 0) return true;
+  // Safety fallback: if the table is empty for any reason, honour the env
+  // var so the bootstrap admin is never locked out.
+  const envChat = adminChatId();
+  return envChat !== null && key === envChat;
 }

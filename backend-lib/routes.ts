@@ -919,6 +919,9 @@ export function mountRoutes(app: Hono) {
             id: string;
             user_id: number;
             hike_id: string;
+            hike_title: string;
+            hike_date: string;
+            hike_location: string;
             party_size: number;
             status: string;
             payment_status: string;
@@ -928,10 +931,29 @@ export function mountRoutes(app: Hono) {
           },
           [number]
         >(
-          "SELECT id, user_id, hike_id, party_size, status, payment_status, total_pence, stripe_session_id, created_at FROM bookings WHERE user_id = ? ORDER BY created_at DESC",
+          `SELECT b.id, b.user_id, b.hike_id, h.title AS hike_title, h.date AS hike_date, h.location AS hike_location,
+                  b.party_size, b.status, b.payment_status, b.total_pence, b.stripe_session_id, b.created_at
+           FROM bookings b
+           LEFT JOIN hikes h ON h.id = b.hike_id
+           WHERE b.user_id = ?
+           ORDER BY b.created_at DESC`,
         )
         .all(Number(session.sub));
-      return c.json({ bookings: rows.map(bookingToJson) });
+      return c.json({
+        bookings: rows.map((row) => ({
+          id: row.id,
+          hikeId: row.hike_id,
+          hikeTitle: row.hike_title ?? "Hike",
+          hikeDate: row.hike_date ?? "",
+          hikeLocation: row.hike_location ?? "",
+          partySize: row.party_size,
+          status: row.status,
+          paymentStatus: row.payment_status,
+          totalPence: row.total_pence,
+          stripeSessionId: row.stripe_session_id,
+          createdAt: row.created_at,
+        })),
+      });
     } catch (err) {
       return handleError(err);
     }
@@ -1032,6 +1054,123 @@ export function mountRoutes(app: Hono) {
     }
   });
 
+  // ----- Admin hike management -----------------------------------
+
+  const hikeCreateSchema = z.object({
+    id: z.string().min(2).max(80),
+    title: z.string().min(2),
+    location: z.string().min(1),
+    region: z.string().min(1),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    duration: z.string().min(1),
+    difficulty: z.enum(["Easy", "Moderate", "Challenging", "Strenuous"]),
+    spotsTotal: z.number().int().min(1).max(500),
+    priceGbp: z.number().min(0),
+    summary: z.string().min(2),
+    description: z.string().min(10),
+    image: z.string().min(1),
+    hero: z.string().optional().default(""),
+    tags: z.array(z.string()).optional().default([]),
+    guide: z.string().min(1),
+  });
+
+  app.get("/api/admin/hikes", async (c) => {
+    try {
+      await requireAdmin(c);
+      const rows = db
+        .query<
+          {
+            id: string;
+            title: string;
+            date: string;
+            region: string;
+            location: string;
+            difficulty: string;
+            duration: string;
+            spots_total: number;
+            spots_left: number;
+            price_pence: number;
+            summary: string;
+            description: string;
+            image: string;
+            hero: string;
+            tags: string;
+            guide: string;
+          },
+          []
+        >(
+          "SELECT id, title, date, region, location, difficulty, duration, spots_total, spots_left, price_pence, summary, description, image, hero, tags, guide FROM hikes ORDER BY date ASC",
+        )
+        .all();
+      return c.json({ hikes: rows.map(presentHike) });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  app.post("/api/admin/hikes", async (c) => {
+    try {
+      await requireAdmin(c);
+      const body = hikeCreateSchema.parse(await c.req.json());
+      const existing = db
+        .query<{ id: string }, [string]>("SELECT id FROM hikes WHERE id = ?")
+        .get(body.id);
+      if (existing) return c.json({ error: `A hike with id "${body.id}" already exists.` }, 409);
+      db.run(
+        `INSERT INTO hikes
+          (id, title, location, region, date, duration, difficulty, spots_total, spots_left, price_pence, summary, description, image, hero, tags, guide)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          body.id,
+          body.title,
+          body.location,
+          body.region,
+          body.date,
+          body.duration,
+          body.difficulty,
+          body.spotsTotal,
+          body.spotsTotal,
+          Math.round(body.priceGbp * 100),
+          body.summary,
+          body.description,
+          body.image,
+          body.hero || body.image,
+          body.tags.join(","),
+          body.guide,
+        ],
+      );
+      return c.json({ ok: true, id: body.id });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  app.delete("/api/admin/hikes/:id", async (c) => {
+    try {
+      await requireAdmin(c);
+      const id = c.req.param("id");
+      // Refuse to delete a hike that has bookings
+      const bookings = db
+        .query<{ count: number }, [string]>(
+          "SELECT COUNT(*) as count FROM bookings WHERE hike_id = ?",
+        )
+        .get(id);
+      if ((bookings?.count ?? 0) > 0) {
+        return c.json(
+          {
+            error: `Can't delete: this hike has ${bookings?.count} booking(s). Cancel them first or set spots_total=0.`,
+          },
+          409,
+        );
+      }
+      const result = db.run("DELETE FROM hikes WHERE id = ?", [id]);
+      if (result.changes === 0) return c.json({ error: "Hike not found" }, 404);
+      return c.json({ ok: true });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   const hikeUpdateSchema = z.object({
     title: z.string().min(2).optional(),
     location: z.string().optional(),
@@ -1105,5 +1244,83 @@ export function mountRoutes(app: Hono) {
       return handleError(err);
     }
   });
+
+  // ---- Telegram allow-list management ----
+  // The bot only responds to chats whose chat id is in telegram_allowlist.
+  // The env var TELEGRAM_ADMIN_CHAT seeds the first entry on a fresh DB.
+  app.get("/api/admin/telegram-allowlist", async (c) => {
+    try {
+      await requireAdmin(c);
+      const rows = db
+        .query<{ chat_id: string; label: string | null; added_at: number; added_by: number | null }, []>(
+          "SELECT chat_id, label, added_at, added_by FROM telegram_allowlist ORDER BY added_at ASC",
+        )
+        .all();
+      return c.json({ entries: rows });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  const telegramAllowlistAddSchema = z.object({
+    chatId: z.string().regex(/^-?\d+$/, "chat id must be a numeric Telegram chat id"),
+    label: z.string().max(80).optional().nullable(),
+  });
+
+  app.post("/api/admin/telegram-allowlist", async (c) => {
+    try {
+      const user = await requireAdmin(c);
+      const body = telegramAllowlistAddSchema.parse(await c.req.json());
+      const chatId = body.chatId.trim();
+      const existing = db
+        .query<{ chat_id: string }, [string]>(
+          "SELECT chat_id FROM telegram_allowlist WHERE chat_id = ?",
+        )
+        .get(chatId);
+      if (existing) {
+        return c.json({ error: "That chat is already on the allow-list" }, 409);
+      }
+      db.run(
+        "INSERT INTO telegram_allowlist (chat_id, label, added_at, added_by) VALUES (?, ?, ?, ?)",
+        [chatId, body.label ?? null, Date.now(), user.sub],
+      );
+      return c.json({ ok: true, chatId });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  app.delete("/api/admin/telegram-allowlist/:chatId", async (c) => {
+    try {
+      const me = await requireAdmin(c);
+      const chatId = c.req.param("chatId");
+      // Refuse to remove the only entry, and refuse to remove your own
+      // admin chat so an admin can't accidentally lock themselves out.
+      const count = db
+        .query<{ c: number }, []>("SELECT COUNT(*) as c FROM telegram_allowlist")
+        .get();
+      if ((count?.c ?? 0) <= 1) {
+        return c.json(
+          { error: "Cannot remove the last entry. Add another chat first." },
+          400,
+        );
+      }
+      const envChat = (process.env.TELEGRAM_ADMIN_CHAT || "").trim();
+      if (envChat && envChat === chatId) {
+        return c.json(
+          { error: "This is the bootstrap admin chat. Change TELEGRAM_ADMIN_CHAT and re-seed to remove it." },
+          400,
+        );
+      }
+      const result = db.run("DELETE FROM telegram_allowlist WHERE chat_id = ?", [chatId]);
+      if (result.changes === 0) return c.json({ error: "Not found" }, 404);
+      // best-effort: silence unused-var warning for me
+      void me;
+      return c.json({ ok: true });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   return app;
 }
