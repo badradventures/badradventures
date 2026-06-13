@@ -13,6 +13,17 @@ This is a **Zo Site** - a web application running on a user's Zo computer that c
 - **Frontend**: React + Vite with client-side routing, shadcn/ui components, and Tailwind CSS 4
 - **Single Process**: Vite runs in middleware mode (no separate dev server)
 
+## Telegram bot allow-list
+
+The bot only issues commands to chats whose chat id is in the `telegram_allowlist` table. The first run seeds the existing `TELEGRAM_ADMIN_CHAT` env var into the table so the bootstrap operator is never locked out; subsequent operators are managed from the admin UI.
+
+- `backend-lib/db.ts` defines the table; the seed runs once if the table is empty.
+- `backend-lib/telegram.ts` (`isAllowedChat`) reads the table. If the table is empty for any reason, it falls back to the env var so the bot never becomes unreachable.
+- `backend-lib/routes.ts` exposes three admin endpoints (all require an admin session): `GET /api/admin/telegram-allowlist`, `POST /api/admin/telegram-allowlist`, `DELETE /api/admin/telegram-allowlist/:chatId`.
+- `src/pages/admin.tsx` adds a **Telegram bot** tab to the admin dashboard with add/remove UI, the current allow-list, a tip on finding chat ids (`@userinfobot`), and a safety net that refuses to remove the last remaining entry or the bootstrap chat.
+- Each entry records `chat_id`, optional `label`, `added_at`, and the `added_by` admin user id.
+- Negative chat ids (groups) are supported by the schema and the UI.
+
 ## Architecture
 
 ### File Structure
