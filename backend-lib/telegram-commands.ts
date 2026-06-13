@@ -399,6 +399,34 @@ async function handleTextOrPhoto(
   // ---- multi-step sessions ----
   if (session) {
     if (session.kind.type === "hike-new") {
+      // YES/NO confirm/discard must be checked before we re-parse the text
+      // as a fresh hike description, otherwise "YES" gets sent to the
+      // parser and produces a confusing "couldn't parse" error.
+      if (session.draft) {
+        if (/^(yes|y|save|confirm|sure|ok|okay|yeah|yep)$/i.test(trimmed)) {
+          const d = session.draft;
+          setSession(chat, null);
+          const r = saveHike(d);
+          if (!r.ok) {
+            setSession(chat, { kind: { type: "hike-new" }, draft: d });
+            await sendTelegramMessage(
+              `❌ Couldn't save: ${r.error}\n\nDraft is still active. Reply YES to retry, NO to discard, or send a corrected description.`,
+            );
+            return;
+          }
+          const siteUrl = process.env.PUBLIC_SITE_URL ?? "https://badr-adventures-blackbox.zocomputer.io";
+          await sendTelegramMessage(
+            `✅ <b>Hike saved and live on the site.</b>\n` +
+              `<a href="${siteUrl}/hikes/${r.id}">${siteUrl}/hikes/${r.id}</a>`,
+          );
+          return;
+        }
+        if (/^(no|n|discard|cancel|nope|nah)$/i.test(trimmed)) {
+          setSession(chat, null);
+          await sendTelegramMessage("Draft discarded. Send a new hike description when ready.");
+          return;
+        }
+      }
       await startHikeDraft(chat, trimmed, imageUrl, messageId);
       return;
     }
@@ -428,31 +456,6 @@ async function handleTextOrPhoto(
     }
     if (session.kind.type === "rent-delete") {
       await handleRentDelete(chat, trimmed, messageId);
-      return;
-    }
-  }
-
-  // ---- confirm / discard for an active hike draft ----
-  if (session && session.kind.type === "hike-new" && session.draft) {
-    if (/^(yes|y|save|confirm|sure|ok|okay|yeah|yep)$/i.test(trimmed)) {
-      const d = session.draft;
-      setSession(chat, null);
-      const r = saveHike(d);
-      if (!r.ok) {
-        setSession(chat, { kind: { type: "hike-new" }, draft: d });
-        await sendTelegramMessage(`❌ Couldn't save: ${r.error}\n\nDraft is still active. Reply YES to retry, NO to discard, or send a corrected description.`);
-        return;
-      }
-      const siteUrl = process.env.PUBLIC_SITE_URL ?? "https://badr-adventures-blackbox.zocomputer.io";
-      await sendTelegramMessage(
-        `✅ <b>Hike saved and live on the site.</b>\n` +
-          `<a href="${siteUrl}/hikes/${r.id}">${siteUrl}/hikes/${r.id}</a>`,
-      );
-      return;
-    }
-    if (/^(no|n|discard|cancel|nope|nah)$/i.test(trimmed)) {
-      setSession(chat, null);
-      await sendTelegramMessage("Draft discarded. Send a new hike description when ready.");
       return;
     }
   }
