@@ -748,7 +748,7 @@ export function mountRoutes(app: Hono) {
         const sessionRes = await createCheckoutSession({
           hikeTitle: `${hike.title} x${body.partySize}`,
           amountPence: totalPence,
-          successUrl: `${origin}/booking-success?booking=${id}`,
+          successUrl: `${origin}/booking-success?booking_id=${id}&session_id=\${CHECKOUT_SESSION_ID}`,
           cancelUrl: `${origin}/hikes/${hike.id}?cancelled=1`,
           customerEmail: session.email,
           metadata: {
