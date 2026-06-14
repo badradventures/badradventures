@@ -386,7 +386,7 @@ export function mountRoutes(app: Hono) {
       db.run(
         `INSERT INTO equipment_bookings
           (id, user_id, equipment_id, start_date, end_date, nights, units, guests, status, payment_status, total_pence, notes, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'reserved', 'unpaid', ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'reserved', 'unpaid', ?, ?, ?)`,
         [
           id,
           session.sub,
