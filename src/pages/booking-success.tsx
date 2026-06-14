@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 export default function BookingSuccessPage() {
   const [params] = useSearchParams();
-  const bookingId = params.get("booking") || params.get("bookingId") || params.get("booking_id") || "";
+  const bookingId = params.get("booking_id") || params.get("booking") || "";
   const sessionId = params.get("session_id") || "";
 
   useEffect(() => {
