@@ -412,8 +412,8 @@ export function mountRoutes(app: Hono) {
           const sessionObj = await createCheckoutSession({
             hikeTitle: `${item.name} hire (${nights} night${nights > 1 ? "s" : ""})`,
             amountPence: totalPence,
-            successUrl: `${origin}/account/reservations?reservation=${id}&paid=1`,
-            cancelUrl: `${origin}/account/reservations?reservation=${id}`,
+            successUrl: `${origin}/bookings?reservation=${id}&paid=1`,
+            cancelUrl: `${origin}/bookings?reservation=${id}`,
             customerEmail: session.email,
             metadata: { kind: "equipment", reservationId: id },
           });
