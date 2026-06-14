@@ -8,7 +8,6 @@ import AboutPage from "@/pages/about";
 import ContactPage from "@/pages/contact";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
-import AccountPage from "@/pages/account";
 import AdminPage from "@/pages/admin";
 import BookingSuccessPage from "@/pages/booking-success";
 import BookingsPage from "@/pages/bookings";
@@ -32,7 +31,6 @@ export default function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/sign-in" element={<SignInPage />} />
             <Route path="/sign-up" element={<SignUpPage />} />
-            <Route path="/account" element={<AccountPage />} />
             <Route path="/bookings/success" element={<BookingSuccessPage />} />
             <Route path="/booking-success" element={<BookingSuccessPage />} />
             <Route path="/bookings" element={<BookingsPage />} />

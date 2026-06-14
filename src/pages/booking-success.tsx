@@ -47,7 +47,7 @@ export default function BookingSuccessPage() {
       </Card>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Button asChild className="bg-emerald-900 hover:bg-emerald-800">
-          <Link to="/account">View my bookings</Link>
+          <Link to="/bookings">View my bookings</Link>
         </Button>
         <Button asChild variant="outline">
           <Link to="/hikes">Browse more hikes</Link>

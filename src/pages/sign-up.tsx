@@ -17,7 +17,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [params] = useSearchParams();
-  const next = params.get("next") || "/account";
+  const next = params.get("next") || "/bookings";
   const navigate = useNavigate();
   const { refresh } = useAuth();
 
