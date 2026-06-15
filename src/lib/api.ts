@@ -1,7 +1,17 @@
+import { supabase } from "./supabase";
+
 export type ApiError = Error & { status?: number; body?: unknown };
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
+  const session = await supabase().auth.getSession();
+  const accessToken = session.data.session?.access_token;
+
+  // The Zo proxy (zite-*.zo.computer) strips Authorization and Cookie headers,
+  // so pass the token as a query parameter instead.
+  const separator = path.includes("?") ? "&" : "?";
+  const url = accessToken ? `${path}${separator}token=${encodeURIComponent(accessToken)}` : path;
+
+  const res = await fetch(url, {
     credentials: "include",
     ...init,
     headers: {
@@ -36,7 +46,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export type StoredUser = {
-  id: number;
+  id: string;
   email: string;
   name: string;
   isAdmin?: boolean;

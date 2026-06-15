@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Mountain, UserPlus } from "lucide-react";
 import { api, setStoredUser } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useAuth } from "@/components/site-shell";
 import { toast } from "sonner";
 
-type Me = { id: number; name: string; email: string; isAdmin: boolean };
+type Me = { id: string; name: string; email: string; isAdmin: boolean };
 
 export default function SignUpPage() {
   const [name, setName] = useState("");
@@ -29,14 +30,28 @@ export default function SignUpPage() {
     }
     setSubmitting(true);
     try {
-      const res = await api<{ user: Me }>("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify({ name, email, password }),
+      const { data, error } = await supabase().auth.signUp({
+        email,
+        password,
+        options: { data: { name: name } },
       });
-      setStoredUser(res.user);
-      await refresh();
-      toast.success("Account created. Time to find a hike.");
-      navigate(next);
+      if (error) throw error;
+      if (data.session) {
+        // Auto-confirmed (e.g. dev mode); the cookie/access token is set
+        // by the SDK and the next api() call will carry it.
+        const res = await api<{ user: Me | null }>("/api/auth/me");
+        if (!res.user) throw new Error("Your session was not found. Try refreshing the page.");
+        setStoredUser(res.user);
+        await refresh();
+        toast.success("Account created. Time to find a hike.");
+        navigate(next);
+      } else {
+        // Email confirmation required.
+        toast.success(
+          "Account created. Check your email for a confirmation link before signing in.",
+        );
+        navigate(`/sign-in?next=${encodeURIComponent(next)}`);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign up failed");
     } finally {

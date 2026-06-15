@@ -5,6 +5,7 @@ import { Shield, User, Trash2, Download, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/site-shell";
+import { api } from "@/lib/api";
 
 export default function PrivacyPage() {
   const { user } = useAuth();

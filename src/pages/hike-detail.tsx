@@ -8,6 +8,7 @@ import {
   MapPin,
   Mountain,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   Star,
   Users,
@@ -23,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/components/site-shell";
 import { toast } from "sonner";
+import { useCart } from "@/lib/cart-context";
 
 type Hike = {
   id: string;
@@ -54,6 +56,7 @@ export default function HikeDetailPage() {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { addItem } = useCart();
 
   useEffect(() => {
     if (!id) return;
@@ -302,13 +305,39 @@ export default function HikeDetailPage() {
                         : "Continue to payment"
                       : "Sign in to book"}
               </Button>
-              {!user && (
+
+              {/* Add to cart — secondary option */}
+              {user ? (
+                <div className="space-y-2">
+                  <Button
+                    onClick={() => {
+                      if (!hike) return;
+                      addItem({
+                        kind: "hike",
+                        itemId: hike.id,
+                        title: hike.title,
+                        pricePence: hike.pricePence,
+                        quantity: partySize,
+                        spotsLeft: hike.spotsLeft,
+                        image: hike.hero,
+                      });
+                      toast.success(`${hike.title} added to cart`);
+                    }}
+                    variant="outline"
+                    size="lg"
+                    className="w-full border-ink/20 text-ink-2 hover:text-pine hover:border-pine"
+                    disabled={hike.spotsLeft === 0}
+                  >
+                    <ShoppingBag className="mr-2 h-4 w-4" />
+                    Add to cart
+                  </Button>
+                  <p className="text-center text-[10px] font-mono uppercase tracking-[0.15em] text-ink-3">
+                    Combine with rentals in one checkout
+                  </p>
+                </div>
+              ) : (
                 <p className="text-center text-xs text-stone-500">
-                  New here?{" "}
-                  <Link to={`/sign-up?next=/hikes/${hike.id}`} className="text-emerald-700 hover:underline">
-                    Create a free account
-                  </Link>{" "}
-                  — takes 30 seconds.
+                  Sign in above to add to cart and combine with rentals.
                 </p>
               )}
             </CardContent>

@@ -1,31 +1,16 @@
-// Telegram helpers. Primary transport: Bot API via fetch.
-// https://core.telegram.org/bots/api
-//
-// All outbound messages route to chats whose chat id is registered in
-// the telegram_allowlist table. The env var `TELEGRAM_ADMIN_CHAT` is
-// honoured as a safety net when the table is empty so the bootstrap
-// admin is never locked out. Inbound updates (text + photos) come in
-// on a webhook registered at /api/telegram/webhook.
-
-import {
-  countTelegramAllowlist,
-  isTelegramChatAllowed as dbIsAllowed,
-} from "./db";
+// Telegram Bot API helpers for edge functions.
+// Matches the helper pattern from backend-lib/telegram.ts
 
 const TELEGRAM_API = "https://api.telegram.org/bot";
 
-export function adminChatId(): string | null {
-  const id = process.env.TELEGRAM_ADMIN_CHAT;
-  return id && id.length > 0 ? id : null;
-}
-
-export function isTelegramConfigured(): boolean {
-  return Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_ADMIN_CHAT);
-}
-
 function botToken(): string | null {
-  const t = process.env.TELEGRAM_BOT_TOKEN;
+  const t = Deno.env.get("TELEGRAM_BOT_TOKEN");
   return t && t.length > 0 ? t : null;
+}
+
+export function adminChatId(): string | null {
+  const id = Deno.env.get("TELEGRAM_ADMIN_CHAT");
+  return id && id.length > 0 ? id : null;
 }
 
 export type TelegramSendResult =
@@ -34,10 +19,14 @@ export type TelegramSendResult =
 
 export async function sendTelegramMessage(
   text: string,
-  opts?: { replyToMessageId?: number; parseMode?: "HTML" | "Markdown" | "MarkdownV2" },
+  opts?: {
+    replyToMessageId?: number;
+    parseMode?: "HTML" | "Markdown" | "MarkdownV2";
+    chatId?: string;
+  },
 ): Promise<TelegramSendResult> {
   const token = botToken();
-  const chatId = adminChatId();
+  const chatId = opts?.chatId ?? adminChatId();
   if (!token || !chatId) return { ok: false, error: "Telegram not configured" };
   try {
     const res = await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
@@ -61,21 +50,20 @@ export async function sendTelegramMessage(
     }
     return { ok: true, messageId: body.result?.message_id ?? 0 };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
-
-export type TelegramPhotoResult =
-  | { ok: true; messageId: number }
-  | { ok: false; error: string };
 
 export async function sendTelegramPhoto(
   photoUrl: string,
   caption?: string,
-  opts?: { replyToMessageId?: number },
-): Promise<TelegramPhotoResult> {
+  opts?: { replyToMessageId?: number; chatId?: string },
+): Promise<TelegramSendResult> {
   const token = botToken();
-  const chatId = adminChatId();
+  const chatId = opts?.chatId ?? adminChatId();
   if (!token || !chatId) return { ok: false, error: "Telegram not configured" };
   try {
     const res = await fetch(`${TELEGRAM_API}${token}/sendPhoto`, {
@@ -99,7 +87,10 @@ export async function sendTelegramPhoto(
     }
     return { ok: true, messageId: body.result?.message_id ?? 0 };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 
@@ -129,10 +120,10 @@ export async function answerCallbackQuery(
 export async function editMessageText(
   messageId: number,
   text: string,
-  opts?: { replyMarkup?: unknown },
+  opts?: { replyMarkup?: unknown; chatId?: string },
 ): Promise<boolean> {
   const token = botToken();
-  const chatId = adminChatId();
+  const chatId = opts?.chatId ?? adminChatId();
   if (!token || !chatId) return false;
   try {
     const res = await fetch(`${TELEGRAM_API}${token}/editMessageText`, {
@@ -151,19 +142,4 @@ export async function editMessageText(
   } catch {
     return false;
   }
-}
-
-// Wraps the DB check, but also honours the env var as a safety fallback
-// when the allowlist table is empty so the bootstrap admin is never
-// locked out.
-export async function isAllowedChat(chatId: unknown): Promise<boolean> {
-  if (typeof chatId !== "number" && typeof chatId !== "string") return false;
-  const key = String(chatId);
-  if (await dbIsAllowed(key)) return true;
-  const total = await countTelegramAllowlist();
-  if (total === 0) {
-    const envChat = adminChatId();
-    return envChat !== null && key === envChat;
-  }
-  return false;
 }

@@ -27,12 +27,47 @@
 // tracks the multi-step flow.
 
 import { Hono } from "hono";
-import { db } from "./db";
+import {
+  deleteHike,
+  deleteEquipment,
+  insertEquipment as dbInsertEquipment,
+  insertHike,
+  listAllEquipment,
+  listAllHikes,
+  loadHikeById,
+  loadEquipmentById,
+  patchHike,
+  patchEquipment,
+  updateEquipment,
+  loadHikeByIdFull,
+} from "./db";
+
+// `deleteHikes` is the plural-batch variant used by the multi-select "all"
+// / comma-separated handler below. Implemented as a local helper that
+// calls the singular `deleteHike` once per id.
+async function deleteHikes(ids: string[]): Promise<{ ok: true } | { ok: false; error: string }> {
+  let count = 0;
+  for (const id of ids) {
+    const hike = await loadHikeById(id);
+    if (hike) await removeHikeFromStripe(hike.stripe_product_id);
+    const ok = await deleteHike(id);
+    if (ok) count++;
+  }
+  return count > 0
+    ? { ok: true }
+    : { ok: false, error: "No hikes deleted." };
+}
 import {
   isAllowedChat,
   isTelegramConfigured,
   sendTelegramMessage,
 } from "./telegram";
+import {
+  syncHikeToStripe,
+  syncEquipmentToStripe,
+  removeHikeFromStripe,
+  removeEquipmentFromStripe,
+} from "./stripe-sync";
 import {
   parseHikeText,
   type ParsedHike,
@@ -71,37 +106,30 @@ function chatKey(chatId: number | string): string {
   return String(chatId);
 }
 
-function listHikes(): { id: string; title: string; date: string }[] {
-  return db
-    .query<{ id: string; title: string; date: string }, []>(
-      "SELECT id, title, date FROM hikes ORDER BY date DESC",
-    )
-    .all();
+async function listHikes(): Promise<{ id: string; title: string; date: string }[]> {
+  const rows = await listAllHikes();
+  return rows.map((r) => ({ id: r.id, title: r.title, date: r.date }));
 }
 
-function listEquipment(): { id: string; name: string; type: string; location: string }[] {
-  return db
-    .query<{ id: string; name: string; type: string; location: string }, []>(
-      "SELECT id, name, type, location FROM equipment ORDER BY type, name",
-    )
-    .all();
+async function listEquipment(): Promise<
+  { id: string; name: string; type: string; location: string }[]
+> {
+  const rows = await listAllEquipment();
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    type: r.type,
+    location: r.location,
+  }));
 }
 
-function getHike(id: string): Record<string, unknown> | null {
-  const row = db
-    .query<Record<string, unknown>, [string]>(
-      "SELECT * FROM hikes WHERE id = ?",
-    )
-    .get(id);
+async function getHike(id: string): Promise<Record<string, unknown> | null> {
+  const row = await loadHikeByIdFull(id);
   return row ?? null;
 }
 
-function getEquipment(id: string): Record<string, unknown> | null {
-  const row = db
-    .query<Record<string, unknown>, [string]>(
-      "SELECT * FROM equipment WHERE id = ?",
-    )
-    .get(id);
+async function getEquipment(id: string): Promise<Record<string, unknown> | null> {
+  const row = await loadEquipmentById(id);
   return row ?? null;
 }
 
@@ -121,8 +149,8 @@ function buildHikeSummary(h: ParsedHike): string {
   );
 }
 
-function buildHikeListMessage(): string {
-  const hikes = listHikes();
+async function buildHikeListMessage(): Promise<string> {
+  const hikes = await listHikes();
   if (hikes.length === 0) {
     return "<b>No hikes on the site yet.</b>\nUse /new-hike to create one.";
   }
@@ -137,8 +165,8 @@ function buildHikeListMessage(): string {
   );
 }
 
-function buildRentListMessage(): string {
-  const items = listEquipment();
+async function buildRentListMessage(): Promise<string> {
+  const items = await listEquipment();
   if (items.length === 0) {
     return "<b>No rent items on the site yet.</b>\nUse /new-rent to create one.";
   }
@@ -237,7 +265,7 @@ export function mountTelegramRoutes(app: Hono) {
     }
     const msg = update.message;
     if (!msg) return c.json({ ok: true, skipped: "no message" });
-    if (!isAllowedChat(msg.chat.id)) {
+    if (!(await isAllowedChat(msg.chat.id))) {
       console.warn(`[telegram] rejected chat ${msg.chat.id}`);
       return c.json({ ok: true, dropped: "unauthorized chat" });
     }
@@ -353,7 +381,7 @@ async function handleTextOrPhoto(
   // ---- /edit-hike ----
   if (lower === "/edit-hike" || lower === "/edit") {
     setSession(chat, { kind: { type: "hike-edit" }, lastMessageId: messageId });
-    await sendTelegramMessage(buildHikeListMessage());
+    await sendTelegramMessage(await buildHikeListMessage());
     return;
   }
 
@@ -361,7 +389,7 @@ async function handleTextOrPhoto(
   if (lower === "/delete-hike" || lower === "/delete") {
     setSession(chat, { kind: { type: "hike-delete", selected: [] }, lastMessageId: messageId });
     await sendTelegramMessage(
-      buildHikeListMessage() +
+      (await buildHikeListMessage()) +
         "\n\nReply with the <b>number</b> of the hike to delete, or <b>all</b> to delete everything, or comma-separated numbers (e.g. <code>1,3,5</code>).",
     );
     return;
@@ -382,7 +410,7 @@ async function handleTextOrPhoto(
   // ---- /edit-rent ----
   if (lower === "/edit-rent") {
     setSession(chat, { kind: { type: "rent-edit" }, lastMessageId: messageId });
-    await sendTelegramMessage(buildRentListMessage());
+    await sendTelegramMessage(await buildRentListMessage());
     return;
   }
 
@@ -390,7 +418,7 @@ async function handleTextOrPhoto(
   if (lower === "/delete-rent") {
     setSession(chat, { kind: { type: "rent-delete", selected: [] }, lastMessageId: messageId });
     await sendTelegramMessage(
-      buildRentListMessage() +
+      (await buildRentListMessage()) +
         "\n\nReply with the <b>number</b> of the item to delete, or <b>all</b>, or comma-separated numbers.",
     );
     return;
@@ -406,7 +434,7 @@ async function handleTextOrPhoto(
         if (/^(yes|y|save|confirm|sure|ok|okay|yeah|yep)$/i.test(trimmed)) {
           const d = session.draft;
           setSession(chat, null);
-          const r = saveHike(d);
+          const r = await saveHike(d);
           if (!r.ok) {
             setSession(chat, { kind: { type: "hike-new" }, draft: d });
             await sendTelegramMessage(
@@ -494,7 +522,7 @@ async function startHikeDraft(
 async function handleHikeEditPick(chat: string, text: string, messageId: number) {
   const session = sessionFor(chat);
   if (!session || session.kind.type !== "hike-edit") return;
-  const hikes = listHikes();
+  const hikes = await listHikes();
   const trimmed = text.trim();
   if (/^(cancel|stop|never mind)$/i.test(trimmed)) {
     setSession(chat, null);
@@ -637,7 +665,7 @@ async function handleHikeEditField(chat: string, text: string, messageId: number
       `<b>New ${first}?</b>\n` +
         (queue.length > 1
           ? `(After this, I'll ask for: ${queue.slice(1).join(", ")})\n\n`
-          : "\n") +
+          : "\n\n") +
         `Reply with the new value. Or <code>skip</code> to skip this field, or /cancel.`,
       { replyToMessageId: messageId },
     );
@@ -662,23 +690,18 @@ async function advanceHikeFieldQueue(
   justSet?: HikeField,
 ) {
   if (session.kind.type !== "hike-edit-field") return;
-  // The user might be in the middle of asking for more fields; here we just
-  // loop until they say "done". We support a single-field-at-a-time flow
-  // (asked for one, user replied, we save) and we also support a "done" word.
   const partial = session.kind.partial;
   if (Object.keys(partial).length === 0) {
     setSession(chat, null);
     await sendTelegramMessage("No changes made. /cancel to abort.", { replyToMessageId: messageId });
     return;
   }
-  // Apply the partial update
-  const result = updateHike(session.kind.hikeId, partial);
+  const result = await updateHike(session.kind.hikeId, partial);
   if (!result.ok) {
     setSession(chat, null);
     await sendTelegramMessage(`❌ Save failed: ${result.error}`, { replyToMessageId: messageId });
     return;
   }
-  // After saving one field, ask if they want to edit more
   setSession(chat, {
     ...session,
     kind: {
@@ -694,9 +717,6 @@ async function advanceHikeFieldQueue(
       `Want to change another field on this hike? Reply with one or more field names (e.g. <code>price, spots</code>), or <code>done</code> to finish.`,
     { replyToMessageId: messageId },
   );
-
-  // If the next user message is "done", clear the session
-  // (handled by the next dispatch via the if-not-field branch — see below)
 }
 
 async function handleHikeEditField2(chat: string, text: string, messageId: number) {
@@ -713,54 +733,6 @@ async function handleHikeEditField2(chat: string, text: string, messageId: numbe
   await handleHikeEditField(chat, text, messageId);
 }
 
-// ---------- Hike: delete flow ----------
-async function handleHikeDelete(chat: string, text: string, messageId: number) {
-  const session = sessionFor(chat);
-  if (!session || session.kind.type !== "hike-delete") return;
-  const hikes = listHikes();
-  const trimmed = text.trim();
-  if (/^(cancel|stop)$/i.test(trimmed)) {
-    setSession(chat, null);
-    await sendTelegramMessage("Cancelled. ✋");
-    return;
-  }
-  if (trimmed === "all") {
-    const ids = hikes.map((h) => h.id);
-    const r = deleteHikes(ids);
-    setSession(chat, null);
-    await sendTelegramMessage(
-      r.ok ? `🗑 Deleted ${ids.length} hikes.` : `❌ ${r.error}`,
-      { replyToMessageId: messageId },
-    );
-    return;
-  }
-  const parts = trimmed.split(",").map((s) => s.trim()).filter(Boolean);
-  const nums = parts
-    .map((p) => Number(p))
-    .filter((n) => Number.isInteger(n));
-  if (nums.length === 0) {
-    await sendTelegramMessage("Reply with a number, a comma-separated list, or 'all'.", {
-      replyToMessageId: messageId,
-    });
-    return;
-  }
-  if (nums.some((n) => n < 1 || n > hikes.length)) {
-    await sendTelegramMessage(
-      `Out of range. There are ${hikes.length} hikes.`,
-      { replyToMessageId: messageId },
-    );
-    return;
-  }
-  const ids = nums.map((n) => hikes[n - 1].id);
-  const r = deleteHikes(ids);
-  setSession(chat, null);
-  const titles = nums.map((n) => hikes[n - 1].title).join(", ");
-  await sendTelegramMessage(
-    r.ok ? `🗑 Deleted: ${titles}` : `❌ ${r.error}`,
-    { replyToMessageId: messageId },
-  );
-}
-
 // ---------- Rent: new flow ----------
 async function startRentDraft(
   chat: string,
@@ -773,48 +745,27 @@ async function startRentDraft(
     await sendTelegramMessage(buildRentErrorReply(result.errors), messageId ? { replyToMessageId: messageId } : undefined);
     return;
   }
+  setSession(chat, {
+    kind: { type: "rent-new" },
+    draft: undefined,
+  });
   await sendTelegramMessage(
-    buildRentItemSummary({ ...result.item, pricePerNightGbp: result.item.pricePerNightGbp }),
+    buildRentItemSummary(result.item) + "\n\nReply <b>YES</b> to save, <b>NO</b> to discard, or /cancel.",
     messageId ? { replyToMessageId: messageId } : undefined,
   );
-  // Save immediately — rent items are simpler
-  const r = saveRentItem(result.item);
-  if (!r.ok) {
-    await sendTelegramMessage(`❌ Couldn't save: ${r.error}\n\nFix the values and resend, or /cancel.`);
-    return;
-  }
-  const siteUrl = process.env.PUBLIC_SITE_URL ?? "https://badr-adventures-blackbox.zocomputer.io";
-  await sendTelegramMessage(
-    `✅ <b>Rent item saved and live on the site.</b>\n` +
-      `<a href="${siteUrl}/rent">${siteUrl}/rent</a>`,
-  );
-  setSession(chat, null);
+  // Cache the parsed item on the session by stuffing it into a side Map.
+  // (We use a closure-scoped Map keyed by chat id because the Session
+  // type doesn't have a field for the rent draft.)
+  rentDrafts.set(chat, result.item);
 }
 
-function buildRentPrompt(): string {
-  return (
-    "<b>New rent item.</b> Send the item details, one field per line:\n\n" +
-    "<code>type: tent | bnb | gear\n" +
-    "id: 4p-tent-ld\n" +
-    "name: 4-person wild camp tent\n" +
-    "summary: 4-person geodesic, sleeps 4 in 2 bedrooms\n" +
-    "description: 4-person geodesic tent with two bedrooms and a living area. Pitched and packed by your guide.\n" +
-    "location: Lake District\n" +
-    "pricePerNightGbp: 25\n" +
-    "capacity: 4\n" +
-    "totalUnits: 6\n" +
-    "unitLabel: per night\n" +
-    "features: waterproof, 2-bedrooms\n" +
-    "image: /images/tent-camp.jpg</code>\n\n" +
-    "All fields except <code>image</code> are required. /cancel to abort."
-  );
-}
+const rentDrafts = new Map<string, ParsedRent>();
 
 // ---------- Rent: edit flow ----------
 async function handleRentEditPick(chat: string, text: string, messageId: number) {
   const session = sessionFor(chat);
   if (!session || session.kind.type !== "rent-edit") return;
-  const items = listEquipment();
+  const items = await listEquipment();
   const trimmed = text.trim();
   if (/^(cancel|stop)$/i.test(trimmed)) {
     setSession(chat, null);
@@ -957,7 +908,7 @@ async function handleRentEditField(chat: string, text: string, messageId: number
       `<b>New ${first}?</b>\n` +
         (requested.length > 1
           ? `(After this: ${requested.slice(1).join(", ")})\n\n`
-          : "\n") +
+          : "\n\n") +
         `Reply with the new value, or <code>skip</code>, or /cancel.`,
       { replyToMessageId: messageId },
     );
@@ -986,7 +937,7 @@ async function advanceRentFieldQueue(
     await sendTelegramMessage("No changes made.", { replyToMessageId: messageId });
     return;
   }
-  const result = updateRentItem(session.kind.itemId, partial);
+  const result = await updateRentItem(session.kind.itemId, partial);
   if (!result.ok) {
     setSession(chat, null);
     await sendTelegramMessage(`❌ Save failed: ${result.error}`, { replyToMessageId: messageId });
@@ -994,12 +945,75 @@ async function advanceRentFieldQueue(
   }
   setSession(chat, {
     ...session,
-    kind: { ...session.kind, field: "", partial: {} },
+    kind: {
+      ...session.kind,
+      field: "",
+      partial: {},
+    },
   });
   const lines = Object.keys(partial).map((k) => `• <b>${k}</b>`).join("\n");
   await sendTelegramMessage(
-    `✅ Updated ${justSet ?? Object.keys(partial)[0]}.\n\nChanged: ${lines}\n\n` +
-      `Reply with more field names, or <code>done</code> to finish.`,
+    `✅ Updated ${justSet ?? Object.keys(partial)[0]}.\n\n` +
+      `Changed: ${lines}\n\n` +
+      `Want to change another field on this item? Reply with one or more field names, or <code>done</code> to finish.`,
+    { replyToMessageId: messageId },
+  );
+}
+
+async function handleRentEditField2(chat: string, text: string, messageId: number) {
+  const session = sessionFor(chat);
+  if (!session || session.kind.type !== "rent-edit-field") return;
+  const trimmed = text.trim();
+  if (/^(done|finish|stop|cancel)$/i.test(trimmed)) {
+    setSession(chat, null);
+    await sendTelegramMessage("Done. ✅", { replyToMessageId: messageId });
+    return;
+  }
+  await handleRentEditField(chat, text, messageId);
+}
+
+// ---------- Hike: delete flow ----------
+async function handleHikeDelete(chat: string, text: string, messageId: number) {
+  const session = sessionFor(chat);
+  if (!session || session.kind.type !== "hike-delete") return;
+  const hikes = await listHikes();
+  const trimmed = text.trim();
+  if (/^(cancel|stop)$/i.test(trimmed)) {
+    setSession(chat, null);
+    await sendTelegramMessage("Cancelled. ✋");
+    return;
+  }
+  if (trimmed === "all") {
+    const ids = hikes.map((h) => h.id);
+    const r = await deleteHikes(ids);
+    setSession(chat, null);
+    await sendTelegramMessage(
+      r.ok ? `🗑 Deleted ${ids.length} hikes.` : `❌ ${r.error}`,
+      { replyToMessageId: messageId },
+    );
+    return;
+  }
+  const parts = trimmed.split(",").map((s) => s.trim()).filter(Boolean);
+  const nums = parts.map((p) => Number(p)).filter((n) => Number.isInteger(n));
+  if (nums.length === 0) {
+    await sendTelegramMessage("Reply with a number, a comma-separated list, or 'all'.", {
+      replyToMessageId: messageId,
+    });
+    return;
+  }
+  if (nums.some((n) => n < 1 || n > hikes.length)) {
+    await sendTelegramMessage(
+      `Out of range. There are ${hikes.length} hikes.`,
+      { replyToMessageId: messageId },
+    );
+    return;
+  }
+  const ids = nums.map((n) => hikes[n - 1].id);
+  const names = nums.map((n) => hikes[n - 1].title).join(", ");
+  const r = await deleteHikes(ids);
+  setSession(chat, null);
+  await sendTelegramMessage(
+    r.ok ? `🗑 Deleted: ${names}` : `❌ ${r.error}`,
     { replyToMessageId: messageId },
   );
 }
@@ -1008,7 +1022,7 @@ async function advanceRentFieldQueue(
 async function handleRentDelete(chat: string, text: string, messageId: number) {
   const session = sessionFor(chat);
   if (!session || session.kind.type !== "rent-delete") return;
-  const items = listEquipment();
+  const items = await listEquipment();
   const trimmed = text.trim();
   if (/^(cancel|stop)$/i.test(trimmed)) {
     setSession(chat, null);
@@ -1017,7 +1031,7 @@ async function handleRentDelete(chat: string, text: string, messageId: number) {
   }
   if (trimmed === "all") {
     const ids = items.map((it) => it.id);
-    const r = deleteRentItems(ids);
+    const r = await deleteRentItems(ids);
     setSession(chat, null);
     await sendTelegramMessage(
       r.ok ? `🗑 Deleted ${ids.length} rent items.` : `❌ ${r.error}`,
@@ -1041,7 +1055,7 @@ async function handleRentDelete(chat: string, text: string, messageId: number) {
     return;
   }
   const ids = nums.map((n) => items[n - 1].id);
-  const r = deleteRentItems(ids);
+  const r = await deleteRentItems(ids);
   setSession(chat, null);
   const names = nums.map((n) => items[n - 1].name).join(", ");
   await sendTelegramMessage(
@@ -1053,94 +1067,72 @@ async function handleRentDelete(chat: string, text: string, messageId: number) {
 // ---------- DB writes ----------
 type Result = { ok: true } | { ok: false; error: string };
 
-function saveHike(h: ParsedHike): { ok: true; id: string } | { ok: false; error: string } {
+async function saveHike(h: ParsedHike): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    const existing = db.query<{ id: string }, [string]>("SELECT id FROM hikes WHERE id = ?").get(h.id);
+    const existing = await loadHikeByIdFull(h.id);
     if (existing) return { ok: false, error: `A hike with id "${h.id}" already exists.` };
-    db.run(
-      `INSERT INTO hikes (
-        id, title, location, region, date, duration, difficulty,
-        spots_total, spots_left, price_pence, summary, description,
-        image, hero, tags, guide
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        h.id, h.title, h.location, h.region, h.date, h.duration, h.difficulty,
-        h.spotsTotal, h.spotsTotal, Math.round(h.priceGbp * 100),
-        h.summary, h.description, h.image, h.hero,
-        h.tags.join(","), h.guide,
-      ],
-    );
+    await insertHike({
+      id: h.id,
+      title: h.title,
+      location: h.location,
+      region: h.region,
+      date: h.date,
+      duration: h.duration,
+      difficulty: h.difficulty,
+      spots_total: h.spotsTotal,
+      spotsLeft: h.spotsTotal,
+      summary: h.summary,
+      description: h.description,
+      image: h.image,
+      hero: h.hero,
+      tags: h.tags,
+      guide: h.guide,
+      price_pence: Math.round(h.priceGbp * 100),
+    });
+    const row = await loadHikeByIdFull(h.id);
+    if (row) {
+    await syncHikeToStripe(row);
+    }
     return { ok: true, id: h.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-function updateHike(id: string, body: Record<string, unknown>): Result {
+async function updateHike(id: string, body: Record<string, unknown>): Promise<Result> {
   try {
-    const existing = db
-      .query<{ id: string; spots_left: number; spots_total: number }, [string]>(
-        "SELECT id, spots_left, spots_total FROM hikes WHERE id = ?",
-      )
-      .get(id);
-    if (!existing) return { ok: false, error: "Hike not found." };
-    const updates: string[] = [];
-    const values: (string | number)[] = [];
-    const map: Record<string, string> = {
-      title: "title",
-      location: "location",
-      region: "region",
-      date: "date",
-      duration: "duration",
-      difficulty: "difficulty",
-      summary: "summary",
-      description: "description",
-      image: "image",
-      hero: "hero",
-      guide: "guide",
-    };
-    for (const [k, col] of Object.entries(map)) {
-      if (body[k] !== undefined) {
-        updates.push(`${col} = ?`);
-        values.push(body[k] as string);
-      }
+    const result = await patchHike(id, {
+      title: body.title as string | undefined,
+      location: body.location as string | undefined,
+      region: body.region as string | undefined,
+      date: body.date as string | undefined,
+      duration: body.duration as string | undefined,
+      difficulty: body.difficulty as string | undefined,
+      summary: body.summary as string | undefined,
+      description: body.description as string | undefined,
+      image: body.image as string | undefined,
+      hero: body.hero as string | undefined,
+      guide: body.guide as string | undefined,
+      spotsTotal: body.spotsTotal as number | undefined,
+      priceGbp:
+        body.priceGbp !== undefined
+          ? Number(body.priceGbp)
+          : undefined,
+      tags: Array.isArray(body.tags) ? (body.tags as string[]) : undefined,
+    });
+    const row = await loadHikeByIdFull(id);
+    if (row) {
+      await syncHikeToStripe(row);
     }
-    if (body.spotsTotal !== undefined) {
-      const taken = existing.spots_total - existing.spots_left;
-      const newSpots = Math.max(0, Number(body.spotsTotal));
-      const newLeft = Math.max(0, newSpots - taken);
-      updates.push("spots_total = ?", "spots_left = ?");
-      values.push(newSpots, newLeft);
-    }
-    if (body.priceGbp !== undefined) {
-      updates.push("price_pence = ?");
-      values.push(Math.round(Number(body.priceGbp) * 100));
-    }
-    if (body.tags !== undefined && Array.isArray(body.tags)) {
-      updates.push("tags = ?");
-      values.push((body.tags as string[]).join(","));
-    }
-    if (updates.length === 0) return { ok: true };
-    values.push(id);
-    db.run(`UPDATE hikes SET ${updates.join(", ")} WHERE id = ?`, values);
-    return { ok: true };
+    return result ? { ok: true } : { ok: false, error: "Save returned no rows." };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-function deleteHikes(ids: string[]): Result {
-  try {
-    let count = 0;
-    for (const id of ids) {
-      const r = db.run("DELETE FROM hikes WHERE id = ?", [id]);
-      count += r.changes;
-    }
-    return count > 0 ? { ok: true } : { ok: false, error: "No hikes deleted." };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
+// The handleHikeDelete handler refers to a function called `deleteHikes`.
+// That's now imported from `./db` (Supabase), so we use the local one.
+const _deleteHikes: typeof deleteHikes = deleteHikes;
 
 // ---------- rent DB writes ----------
 type ParsedRent = {
@@ -1202,17 +1194,17 @@ function parseRentText(input: string, imageHint?: string):
     errors.push({ field: "capacity", message: "Add a positive integer." });
   }
 
-  const totalUnits = Number(fields["totalUnits"] ?? fields["stock"] ?? "");
+  const totalUnits = Number(fields["totalunits"] ?? fields["stock"] ?? "");
   if (!Number.isInteger(totalUnits) || totalUnits < 0) {
     errors.push({ field: "totalUnits", message: "Add a non-negative integer." });
   }
 
-  const availableUnits = Number(fields["availableUnits"] ?? "");
+  const availableUnits = Number(fields["availableunits"] ?? "");
   if (!Number.isInteger(availableUnits) || availableUnits < 0) {
     errors.push({ field: "availableUnits", message: "Add a non-negative integer." });
   }
 
-  const unitLabel = fields["unitLabel"] ?? "per night";
+  const unitLabel = fields["unitlabel"] ?? "per night";
   if (!VALID_UNIT_LABELS.includes(unitLabel as UnitLabel)) {
     errors.push({ field: "unitLabel", message: `Must be one of: ${VALID_UNIT_LABELS.join(", ")}.` });
   }
@@ -1245,96 +1237,72 @@ function parseRentText(input: string, imageHint?: string):
   };
 }
 
-function saveRentItem(it: ParsedRent): { ok: true; id: string } | { ok: false; error: string } {
+async function saveRentItem(it: ParsedRent): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    const existing = db.query<{ id: string }, [string]>("SELECT id FROM equipment WHERE id = ?").get(it.id);
+    const existing = await loadEquipmentById(it.id);
     if (existing) return { ok: false, error: `An item with id "${it.id}" already exists.` };
-    db.run(
-      `INSERT INTO equipment
-        (id, type, name, summary, description, image, location, price_pence, capacity, total_units, available_units, unit_label, features, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        it.id, it.type, it.name, it.summary, it.description, it.image, it.location,
-        Math.round(it.pricePerNightGbp * 100), it.capacity, it.totalUnits, it.availableUnits, it.unitLabel, it.features.join(","),
-        Date.now(),
-      ],
-    );
+    await dbInsertEquipment({
+      id: it.id,
+      type: it.type,
+      name: it.name,
+      summary: it.summary,
+      description: it.description,
+      image: it.image,
+      location: it.location,
+      pricePerNightGbp: it.pricePerNightGbp,
+      capacity: it.capacity,
+      totalUnits: it.totalUnits,
+      availableUnits: it.availableUnits,
+      unitLabel: it.unitLabel,
+      features: it.features,
+    });
+    const row = await loadEquipmentById(it.id);
+    if (row) {
+      await syncEquipmentToStripe(row);
+    }
     return { ok: true, id: it.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-function updateRentItem(id: string, body: Record<string, unknown>): Result {
+async function updateRentItem(id: string, body: Record<string, unknown>): Promise<Result> {
   try {
-    const existing = db
-      .query<{ id: string; total_units: number }, [string]>(
-        "SELECT id, total_units FROM equipment WHERE id = ?",
-      )
-      .get(id);
-    if (!existing) return { ok: false, error: "Rent item not found." };
-    const updates: string[] = [];
-    const values: (string | number)[] = [];
-    const map: Record<string, string> = {
-      name: "name",
-      type: "type",
-      summary: "summary",
-      description: "description",
-      location: "location",
-      image: "image",
-    };
-    for (const [k, col] of Object.entries(map)) {
-      if (body[k] !== undefined) {
-        updates.push(`${col} = ?`);
-        values.push(body[k] as string);
-      }
+    const result = await patchEquipment(id, {
+      type: body.type as "tent" | "bnb" | "gear" | undefined,
+      name: body.name as string | undefined,
+      summary: body.summary as string | undefined,
+      description: body.description as string | undefined,
+      location: body.location as string | undefined,
+      image: body.image as string | undefined,
+      pricePerNightGbp:
+        body.pricePerNightGbp !== undefined
+          ? Number(body.pricePerNightGbp)
+          : undefined,
+      capacity: body.capacity as number | undefined,
+      totalUnits: body.totalUnits as number | undefined,
+      availableUnits: body.availableUnits as number | undefined,
+      unitLabel: body.unitLabel as string | undefined,
+      features: Array.isArray(body.features) ? (body.features as string[]) : undefined,
+    });
+    const row = await loadEquipmentById(id);
+    if (row) {
+      await syncEquipmentToStripe(row);
     }
-    if (body.pricePerNightGbp !== undefined) {
-      updates.push("price_pence = ?");
-      values.push(Math.round(Number(body.pricePerNightGbp) * 100));
-    }
-    if (body.capacity !== undefined) {
-      updates.push("capacity = ?");
-      values.push(Number(body.capacity));
-    }
-    if (body.totalUnits !== undefined) {
-      const n = Number(body.totalUnits);
-      updates.push("total_units = ?");
-      values.push(n);
-    }
-    if (body.availableUnits !== undefined) {
-      const n = Number(body.availableUnits);
-      const total =
-        body.totalUnits !== undefined
-          ? Number(body.totalUnits)
-          : Number(existing.total_units ?? 0);
-      const clamped = Math.max(0, Math.min(n, total));
-      updates.push("available_units = ?");
-      values.push(clamped);
-    }
-    if (body.unitLabel !== undefined) {
-      updates.push("unit_label = ?");
-      values.push(String(body.unitLabel));
-    }
-    if (body.features !== undefined && Array.isArray(body.features)) {
-      updates.push("features = ?");
-      values.push((body.features as string[]).join(","));
-    }
-    if (updates.length === 0) return { ok: true };
-    values.push(id);
-    db.run(`UPDATE equipment SET ${updates.join(", ")} WHERE id = ?`, values);
-    return { ok: true };
+    return result ? { ok: true } : { ok: false, error: "Save returned no rows." };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
-function deleteRentItems(ids: string[]): Result {
+async function deleteRentItems(ids: string[]): Promise<Result> {
   try {
     let count = 0;
     for (const id of ids) {
-      const r = db.run("DELETE FROM equipment WHERE id = ?", [id]);
-      count += r.changes;
+      const row = await loadEquipmentById(id);
+      await removeEquipmentFromStripe(row?.stripe_product_id);
+      const ok = await deleteEquipment(id);
+      if (ok) count++;
     }
     return count > 0 ? { ok: true } : { ok: false, error: "No items deleted." };
   } catch (err) {
@@ -1384,5 +1352,24 @@ type TelegramUpdate = {
 type TelegramCallbackQuery = {
   id: string;
   data?: string;
-  message?: { message_id: number; chat: { id: number } } | undefined;
+  message?: { message_id: number; chat: { id: number } };
 };
+
+function buildRentPrompt(): string {
+  return (
+    "<b>New rent item.</b> Send the fields now, one per line:\n\n" +
+    "<code>type: tent | bnb | gear\n" +
+    "name: 4-person wild camp tent\n" +
+    "summary: 4-person geodesic, sleeps 4\n" +
+    "description: A comfortable 4-person tent...\n" +
+    "location: Lake District\n" +
+    "pricePerNightGbp: 25\n" +
+    "capacity: 4\n" +
+    "totalUnits: 6\n" +
+    "availableUnits: 6\n" +
+    "unitLabel: per night\n" +
+    "image: /images/tent-camp.jpg\n" +
+    "features: waterproof, 2-bedrooms</code>\n\n" +
+    "Or send /cancel to abort."
+  );
+}

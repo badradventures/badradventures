@@ -12,14 +12,17 @@ import {
   LogOut,
   Mountain,
   MountainSnow,
+  ShoppingBag,
   Sparkles,
   UserPlus,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
+import { CartBadge } from "@/lib/cart-context";
 
 export type Me = {
-  id: number;
+  id: string;
   email: string;
   name: string;
   isAdmin: boolean;
@@ -56,6 +59,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { count } = useCart();
 
   const refresh = async () => {
     try {
@@ -179,6 +183,9 @@ export function SiteShell({ children }: { children: ReactNode }) {
               ))}
             </nav>
 
+            {/* Cart badge */}
+            <CartBadge />
+
             <div className="hidden items-center gap-2 md:flex">
               {loading ? (
                 <div className="h-9 w-32 rounded-full bg-ink/5" />
@@ -202,6 +209,15 @@ export function SiteShell({ children }: { children: ReactNode }) {
                   >
                     <UserPlus className="h-4 w-4" /> Sign up
                     <span className="ml-1 h-1.5 w-1.5 rounded-full bg-rust transition-transform group-hover:scale-150" />
+                  </Link>
+                  <Link
+                    to="/cart"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink-2 transition hover:border-pine hover:text-pine"
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                    {count > 0 && (
+                      <span className="ml-1 h-1.5 w-1.5 rounded-full bg-rust" />
+                    )}
                   </Link>
                 </>
               )}
@@ -431,5 +447,25 @@ function UserMenu({
         <LogOut className="h-4 w-4" />
       </button>
     </div>
+  );
+}
+
+function CartBadge() {
+  const { itemCount } = useCart();
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => navigate("/cart")}
+      className="relative rounded-full border border-ink/10 bg-paper p-2 text-ink-2 hover:border-pine/40 hover:text-pine transition"
+      aria-label={`Cart with ${itemCount} items`}
+    >
+      <ShoppingBag className="h-4 w-4" />
+      {itemCount > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rust px-1 text-[9px] font-bold text-paper leading-none">
+          {itemCount > 9 ? "9+" : itemCount}
+        </span>
+      )}
+    </button>
   );
 }

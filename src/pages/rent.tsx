@@ -11,6 +11,7 @@ import {
   Search,
   Tent,
   Users,
+  ShoppingBag,
 } from "lucide-react";
 import { api, formatGbp } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/components/site-shell";
+import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
 
 type EquipmentType = "tent" | "bnb" | "gear";
@@ -392,6 +394,7 @@ function BookingDialog({
   const [guests, setGuests] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const { addItem } = useCart();
 
   const nights = nightsBetween(start, end);
   const totalPence = item.pricePerNightPence * units * Math.max(1, nights);
@@ -457,6 +460,32 @@ function BookingDialog({
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleAddToCart() {
+    if (nights === 0) {
+      toast.error("Pick a valid date range.");
+      return;
+    }
+    if (tooManyUnits) {
+      toast.error(`Only ${item.availableUnits} of this item are available.`);
+      return;
+    }
+    addItem({
+      kind: "equipment",
+      itemId: item.id,
+      title: item.name,
+      pricePence: item.pricePerNightPence,
+      quantity: units,
+      image: item.image,
+      unitLabel: `${item.unitLabel} · ${item.location}`,
+      startDate: start,
+      endDate: end,
+      nights,
+    });
+    toast.success(`${item.name} added to cart`);
+    onOpenChange(false);
+    reset();
   }
 
   return (
@@ -597,6 +626,15 @@ function BookingDialog({
             disabled={submitting}
           >
             Cancel
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleAddToCart}
+            disabled={submitting || nights === 0 || tooManyUnits}
+            className="border-ink/15 text-ink-2 hover:bg-paper-deep hover:text-pine"
+          >
+            <ShoppingBag className="mr-1.5 h-4 w-4" />
+            Add to cart
           </Button>
           <Button
             onClick={handleSubmit}

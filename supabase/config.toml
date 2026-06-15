@@ -1,0 +1,14 @@
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.confirm-booking]
+verify_jwt = false
+
+[functions.scheduled-cleanup]
+verify_jwt = false
+
+[functions.admin-notify]
+verify_jwt = false

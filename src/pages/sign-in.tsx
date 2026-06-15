@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { LogIn, Mountain } from "lucide-react";
 import { api, setStoredUser } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useAuth } from "@/components/site-shell";
 import { toast } from "sonner";
 
-type Me = { id: number; name: string; email: string; isAdmin: boolean };
+type Me = { id: string; name: string; email: string; isAdmin: boolean };
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -24,13 +25,18 @@ export default function SignInPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await api<{ user: Me }>("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
+      const { data, error } = await supabase().auth.signInWithPassword({
+        email,
+        password,
       });
+      if (error) throw error;
+      const res = await api<{ user: Me | null }>("/api/auth/me");
+      if (!res.user) throw new Error("Your session was not found. Try refreshing the page.");
       setStoredUser(res.user);
       await refresh();
-      toast.success(`Welcome back, ${res.user.name.split(" ")[0]}.`);
+      const firstName = res.user.name?.split(" ")[0]?.trim();
+      const greeting = firstName || res.user.email.split("@")[0];
+      toast.success(`Welcome back, ${greeting}.`);
       navigate(res.user.isAdmin ? "/admin" : next);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Sign in failed");
