@@ -15,7 +15,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import { api, formatDate, formatGbp, clearStoredUser } from "@/lib/api";
+import { api, formatDate, formatGbp } from "@/lib/api";
 import { useAuth } from "@/components/site-shell";
 import { toast } from "sonner";
 
@@ -93,7 +93,7 @@ function daysUntil(d: string) {
 }
 
 export default function BookingsPage() {
-  const { user, refresh } = useAuth();
+  const { user, refresh, signOut } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,10 +162,7 @@ export default function BookingsPage() {
   }
 
   async function handleLogout() {
-    await api("/api/auth/logout", { method: "POST" }).catch(() => null);
-    clearStoredUser();
-    await refresh();
-    toast.success("Signed out. See you on the next trail.");
+    await signOut();
   }
 
   // Partition
