@@ -144,6 +144,21 @@ export function mountRoutes(app: Hono) {
     }),
   );
 
+  // TEMP DEBUG — remove after env diagnosis
+  app.get("/api/_envdebug", (c) =>
+    c.json({
+      supabase_url: process.env.SUPABASE_URL ?? null,
+      srk_present: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      srk_len: process.env.SUPABASE_SERVICE_ROLE_KEY?.length ?? 0,
+      srk_head: process.env.SUPABASE_SERVICE_ROLE_KEY?.slice(0, 20) ?? null,
+      stripe_present: Boolean(process.env.STRIPE_SECRET_KEY),
+      jwt_present: Boolean(process.env.SUPABASE_JWT_SECRET),
+      pat_present: Boolean(process.env.SUPABASE_PAT),
+      node_env: process.env.NODE_ENV ?? null,
+      port: process.env.PORT ?? null,
+    }),
+  );
+
   // -----------------------------------------------------------------
   // Hikes
   // -----------------------------------------------------------------

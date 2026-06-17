@@ -13,6 +13,7 @@
 
 import { supabaseAdmin } from "../_shared/supabase-client.ts";
 import { sendTelegramMessage, adminChatId, type TelegramSendResult } from "../_shared/telegram-api.ts";
+import { loadSession, saveSession } from "../_shared/bot-sessions.ts";
 import { parseHikeText, type ParsedHike } from "../_shared/hike-parser.ts";
 import {
   listAllHikes, loadHikeByIdFull, insertHike, patchHike, deleteHike,
@@ -63,15 +64,13 @@ type Session = {
   lastMessageId?: number;
 };
 
-const sessions = new Map<string, Session>();
 const rentDrafts = new Map<string, ParsedRent>();
 
-function sessionFor(chat: string): Session | undefined {
-  return sessions.get(chat);
+async function sessionFor(chat: string): Promise<Session | null> {
+  return (await loadSession(chat)) as Session | null;
 }
-function setSession(chat: string, s: Session | null) {
-  if (s === null) sessions.delete(chat);
-  else sessions.set(chat, s);
+async function setSession(chat: string, s: Session | null): Promise<void> {
+  await saveSession(chat, s as any);
 }
 
 // ---------------------------------------------------------------------------
@@ -292,13 +291,13 @@ function parseRentText(input: string, imageHint?: string):
 // DB write wrappers (mirror the existing command handler pattern)
 // ---------------------------------------------------------------------------
 
-async function saveHike(h: ParsedHike): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+async function saveHike(h: any): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
     const existing = await loadHikeByIdFull(h.id);
     if (existing) return { ok: false, error: `A hike with id "${h.id}" already exists.` };
     await insertHike({
       id: h.id, title: h.title, location: h.location, region: h.region, date: h.date,
-      duration: h.duration, difficulty: h.difficulty, spots_total: h.spotsTotal, spotsLeft: h.spotsTotal,
+      duration: h.duration, difficulty: h.difficulty, spots_total: h.spotsTotal, spots_left: h.spotsTotal,
       summary: h.summary, description: h.description, image: h.image, hero: h.hero, tags: h.tags, guide: h.guide,
       price_pence: Math.round(h.priceGbp * 100),
     });
@@ -515,6 +514,16 @@ const RENT_EDITABLE_FIELDS = [
 ] as const;
 type RentField = (typeof RENT_EDITABLE_FIELDS)[number];
 
+// Fields that may have default values worth flagging before save
+const HIKE_DEFAULTED_FIELDS: Array<{ key: string; label: string; check: (d: Record<string, unknown>) => string | null }> = [
+  { key: "priceGbp", label: "Price (£)", check: (d) => (d.priceGbp as number) === 0 ? "The price looks like £0. Set a price in GBP (e.g. 85)." : null },
+  { key: "spotsTotal", label: "Spots", check: (d) => (d.spotsTotal as number) === 12 ? "Spots are 12 (default). How many spots?" : null },
+  { key: "duration", label: "Duration", check: (d) => (d.duration as string) === "Full day" ? "Duration is 'Full day'. What should it be?" : null },
+  { key: "guide", label: "Guide", check: (d) => (d.guide as string) === "Abu Jabal" ? "The guide is set to 'Abu Jabal'. Who's the guide?" : null },
+  { key: "image", label: "Image", check: (d) => (d.image as string) === "/images/hero-mountains.jpg" ? "Image is the default. Provide an image path or send 'skip'." : null },
+  { key: "tags", label: "Tags", check: (d) => !((d.tags as string[])?.length > 0) ? "No tags set. Send comma-separated tags or 'none'." : null },
+];
+
 function mapRentFieldToBody(field: RentField, value: string): Record<string, unknown> {
   switch (field) {
     case "name": return { name: value };
@@ -613,12 +622,12 @@ function chatKey(chatId: number | string): string {
 
 async function handleTextOrPhoto(chat: string, text: string, messageId: number, imageUrl?: string) {
   const trimmed = text.trim();
-  const session = sessionFor(chat);
+  const session = await sessionFor(chat);
   const lower = trimmed.toLowerCase();
 
   // ---- cancel ----
   if (lower === "/cancel" || lower === "/discard") {
-    if (session) { setSession(chat, null); await sendTelegramMessage("Session cancelled. ✋"); }
+    if (session) { await setSession(chat, null); await sendTelegramMessage("Session cancelled. ✋"); }
     else { await sendTelegramMessage("Nothing to cancel."); }
     return;
   }
@@ -646,7 +655,7 @@ async function handleTextOrPhoto(chat: string, text: string, messageId: number, 
     if (after.length > 0) {
       await startHikeDraft(chat, after, imageUrl);
     } else {
-      setSession(chat, { kind: { type: "hike-new" }, lastMessageId: messageId });
+      await setSession(chat, { kind: { type: "hike-new" }, lastMessageId: messageId });
       await sendTelegramMessage(
         "<b>New hike.</b> Send the hike description now.\n\n" +
         "Example:\n<code>Yorkshire Dales 3 day trek, £85, hard, 12 spots, 2026-08-12, led by Abu Jabal</code>\n\n" +
@@ -657,15 +666,28 @@ async function handleTextOrPhoto(chat: string, text: string, messageId: number, 
   }
 
   // ---- /edit-hike ----
-  if (lower === "/edit-hike" || lower === "/edit") {
-    setSession(chat, { kind: { type: "hike-edit" }, lastMessageId: messageId });
+  if (lower === "/edit-hike" || lower === "/edit" || lower.startsWith("/edit-hike ") || lower.startsWith("/edit ")) {
+    const after = trimmed.startsWith("/edit-hike")
+      ? trimmed.slice("/edit-hike".length).trim()
+      : trimmed.slice("/edit".length).trim();
+    const hikes = await listHikes();
+    if (after.length > 0) {
+      const n = Number(after);
+      if (!Number.isInteger(n) || n < 1 || n > hikes.length) {
+        await sendTelegramMessage(`Couldn't parse "${after}" as a hike number. Please use a number 1–${hikes.length}.`);
+        return;
+      }
+      await handleHikeEditPick(chat, after, messageId);
+      return;
+    }
+    await setSession(chat, { kind: { type: "hike-edit" }, lastMessageId: messageId });
     await sendTelegramMessage(await buildHikeListMessage());
     return;
   }
 
   // ---- /delete-hike ----
   if (lower === "/delete-hike" || lower === "/delete") {
-    setSession(chat, { kind: { type: "hike-delete", selected: [] }, lastMessageId: messageId });
+    await setSession(chat, { kind: { type: "hike-delete", selected: [] }, lastMessageId: messageId });
     await sendTelegramMessage(
       (await buildHikeListMessage()) +
       "\n\nReply with the <b>number</b> to delete, <b>all</b>, or comma-separated numbers (e.g. <code>1,3,5</code>).",
@@ -679,7 +701,7 @@ async function handleTextOrPhoto(chat: string, text: string, messageId: number, 
     if (after.length > 0) {
       await startRentDraft(chat, after, imageUrl);
     } else {
-      setSession(chat, { kind: { type: "rent-new" }, lastMessageId: messageId });
+      await setSession(chat, { kind: { type: "rent-new" }, lastMessageId: messageId });
       await sendTelegramMessage(buildRentPrompt());
     }
     return;
@@ -687,14 +709,14 @@ async function handleTextOrPhoto(chat: string, text: string, messageId: number, 
 
   // ---- /edit-rent ----
   if (lower === "/edit-rent") {
-    setSession(chat, { kind: { type: "rent-edit" }, lastMessageId: messageId });
+    await setSession(chat, { kind: { type: "rent-edit" }, lastMessageId: messageId });
     await sendTelegramMessage(await buildRentListMessage());
     return;
   }
 
   // ---- /delete-rent ----
   if (lower === "/delete-rent") {
-    setSession(chat, { kind: { type: "rent-delete", selected: [] }, lastMessageId: messageId });
+    await setSession(chat, { kind: { type: "rent-delete", selected: [] }, lastMessageId: messageId });
     await sendTelegramMessage(
       (await buildRentListMessage()) +
       "\n\nReply with the <b>number</b> to delete, <b>all</b>, or comma-separated numbers.",
@@ -707,11 +729,28 @@ async function handleTextOrPhoto(chat: string, text: string, messageId: number, 
     if (session.kind.type === "hike-new") {
       if (session.draft) {
         if (/^(yes|y|save|confirm|sure|ok|okay|yeah|yep)$/i.test(trimmed)) {
-          const d = session.draft;
-          setSession(chat, null);
+          const d = session.draft as Record<string, unknown>;
+          // Check for defaulted fields before saving
+          const flagged: string[] = [];
+          for (const f of HIKE_DEFAULTED_FIELDS) {
+            if (f.check(d) !== null) flagged.push(f.key);
+          }
+          if (flagged.length > 0) {
+            await setSession(chat, {
+              kind: { type: "hike-new-check", draft: d, pendingFields: flagged, currentFieldIndex: 0 },
+              lastMessageId: messageId,
+            });
+            const f = HIKE_DEFAULTED_FIELDS.find((x) => x.key === flagged[0])!;
+            const msg = f.check(d)!;
+            await sendTelegramMessage(
+              `⚠️ <b>Check this before saving</b>\n\n${msg}\n\nReply with the value, or <code>keep</code> to keep the current value.`,
+            );
+            return;
+          }
+          await setSession(chat, null);
           const r = await saveHike(d);
           if (!r.ok) {
-            setSession(chat, { kind: { type: "hike-new" }, draft: d });
+            await setSession(chat, { kind: { type: "hike-new" }, draft: d });
             await sendTelegramMessage(`❌ Couldn't save: ${r.error}\n\nDraft still active. Reply YES to retry, NO to discard.`);
             return;
           }
@@ -721,7 +760,7 @@ async function handleTextOrPhoto(chat: string, text: string, messageId: number, 
           return;
         }
         if (/^(no|n|discard|cancel|nope|nah)$/i.test(trimmed)) {
-          setSession(chat, null);
+          await setSession(chat, null);
           await sendTelegramMessage("Draft discarded.");
           return;
         }
@@ -729,6 +768,7 @@ async function handleTextOrPhoto(chat: string, text: string, messageId: number, 
       await startHikeDraft(chat, trimmed, imageUrl, messageId);
       return;
     }
+    if (session.kind.type === "hike-new-check") { await handleHikeNewCheck(chat, trimmed, messageId); return; }
     if (session.kind.type === "hike-edit") { await handleHikeEditPick(chat, trimmed, messageId); return; }
     if (session.kind.type === "hike-edit-field") { await handleHikeEditField(chat, trimmed, messageId); return; }
     if (session.kind.type === "hike-delete") { await handleHikeDelete(chat, trimmed, messageId); return; }
@@ -738,7 +778,15 @@ async function handleTextOrPhoto(chat: string, text: string, messageId: number, 
     if (session.kind.type === "rent-delete") { await handleRentDelete(chat, trimmed, messageId); return; }
   }
 
-  // ---- fallback: treat as hike description ----
+  // ---- fallback: check for session loss, then treat as hike description ----
+  if (/^\d+$/.test(trimmed)) {
+    // User replied with just a number but the session was lost (cold start).
+    await sendTelegramMessage(
+      "That looks like a number, but I lost track of what we were doing. " +
+      "Use /edit-hike to choose again, or paste a full hike description to create one."
+    );
+    return;
+  }
   await startHikeDraft(chat, trimmed, imageUrl, messageId);
 }
 
@@ -752,48 +800,50 @@ async function startHikeDraft(chat: string, text: string, imageUrl?: string, mes
     await sendTelegramMessage(buildErrorReply(result.errors));
     return;
   }
-  setSession(chat, { kind: { type: "hike-new" }, draft: result.hike, lastMessageId: messageId });
+  await setSession(chat, { kind: { type: "hike-new" }, draft: result.hike, lastMessageId: messageId });
   await sendTelegramMessage(buildHikeSummary(result.hike));
   await sendTelegramMessage("Reply <b>YES</b> to save, <b>NO</b> to discard, or send a corrected description.");
 }
 
 async function handleHikeEditPick(chat: string, text: string, messageId: number) {
-  const s = sessionFor(chat);
+  const s = await sessionFor(chat);
   if (!s || s.kind.type !== "hike-edit") return;
   const hikes = await listHikes();
   const trimmed = text.trim();
-  if (/^(cancel|stop|never mind)$/i.test(trimmed)) { setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
+  if (/^(cancel|stop|never mind)$/i.test(trimmed)) { await setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
   const n = Number(trimmed);
   if (!Number.isInteger(n) || n < 1 || n > hikes.length) {
     await sendTelegramMessage(`Please reply with a number between 1 and ${hikes.length}, or /cancel.`);
     return;
   }
   const picked = hikes[n - 1];
-  setSession(chat, { kind: { type: "hike-edit-field", hikeId: picked.id, field: "", partial: {} }, lastMessageId: messageId });
+  await setSession(chat, { kind: { type: "hike-edit-field", hikeId: picked.id, field: "", partial: {} }, lastMessageId: messageId });
+  const fieldLines = HIKE_EDITABLE_FIELDS.map((f, i) => `${i + 1}. ${f}`).join("\n");
   await sendTelegramMessage(
     `<b>Editing:</b> ${picked.title} — ${picked.date}\n\n` +
-    `What would you like to change? Pick one or more fields, comma-separated:\n` +
-    `<code>title, date, duration, location, region, difficulty, spots, price, summary, description, image, guide, tags</code>\n\n` +
-    `Reply with field names, e.g. <code>price, date</code>. Or /cancel.`,
+    `What would you like to change? Reply with <b>number(s)</b>, comma-separated.\n` +
+    `${fieldLines}\n\n` +
+    `Example: <code>8,2</code> changes price and date. Or /cancel.`,
   );
 }
 
 async function handleHikeEditField(chat: string, text: string, messageId: number) {
-  const s = sessionFor(chat);
+  const s = await sessionFor(chat);
   if (!s || s.kind.type !== "hike-edit-field") return;
   const trimmed = text.trim();
-  if (/^(cancel|stop|never mind)$/i.test(trimmed)) { setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
+  if (/^(cancel|stop|never mind)$/i.test(trimmed)) { await setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
 
   if (!s.kind.field) {
-    const requested = trimmed.toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
-    const unknown = requested.filter((f) => !HIKE_EDITABLE_FIELDS.includes(f as HikeField));
-    if (unknown.length > 0) {
-      await sendTelegramMessage(`Unknown: ${unknown.join(", ")}. Valid: ${HIKE_EDITABLE_FIELDS.join(", ")}.`);
+    const parts = trimmed.split(",").map((s) => s.trim()).filter(Boolean);
+    const nums = parts.map((p) => Number(p)).filter((n) => Number.isInteger(n));
+    if (nums.length === 0 || nums.some((n) => n < 1 || n > HIKE_EDITABLE_FIELDS.length)) {
+      const fieldList = HIKE_EDITABLE_FIELDS.map((f, i) => `${i + 1}. ${f}`).join("\n");
+      await sendTelegramMessage(`Pick number(s) 1–${HIKE_EDITABLE_FIELDS.length}.\n\n${fieldList}\n\nExample: <code>8,2</code> changes price and date.`);
       return;
     }
-    if (requested.length === 0) { await sendTelegramMessage("Pick at least one field."); return; }
+    const requested = nums.map((n) => HIKE_EDITABLE_FIELDS[n - 1]);
     const first = requested[0] as HikeField;
-    setSession(chat, { ...s, kind: { ...s.kind, field: first } });
+    await setSession(chat, { ...s, kind: { ...s.kind, field: first } });
     await sendTelegramMessage(
       `<b>New ${first}?</b>` + (requested.length > 1 ? ` (After this: ${requested.slice(1).join(", ")})` : "") +
       `\n\nReply with the new value, <code>skip</code>, or /cancel.`,
@@ -811,26 +861,27 @@ async function handleHikeEditField(chat: string, text: string, messageId: number
 async function advanceHikeFieldQueue(chat: string, s: Session, messageId: number, _justSet?: HikeField) {
   if (s.kind.type !== "hike-edit-field") return;
   const partial = s.kind.partial;
-  if (Object.keys(partial).length === 0) { setSession(chat, null); await sendTelegramMessage("No changes made."); return; }
+  if (Object.keys(partial).length === 0) { await setSession(chat, null); await sendTelegramMessage("No changes made."); return; }
   const result = await updateHike(s.kind.hikeId, partial);
-  if (!result.ok) { setSession(chat, null); await sendTelegramMessage(`❌ Save failed: ${result.error}`); return; }
-  setSession(chat, { ...s, kind: { ...s.kind, field: "", partial: {} } });
+  if (!result.ok) { await setSession(chat, null); await sendTelegramMessage(`❌ Save failed: ${result.error}`); return; }
+  await setSession(chat, { ...s, kind: { ...s.kind, field: "", partial: {} } });
   const lines = Object.keys(partial).map((k) => `• <b>${k}</b>`).join("\n");
+  const fieldNumList = HIKE_EDITABLE_FIELDS.map((f, i) => `${i + 1}. ${f}`).join("\n");
   await sendTelegramMessage(
-    `✅ Updated.\n\n${lines}\n\nWant to change another field? Reply with field names, or <code>done</code> to finish.`,
+    `✅ Updated.\n\n${lines}\n\nWant to change another field? Reply with number(s), or <code>done</code> to finish.\n\n${fieldNumList}`,
   );
 }
 
 async function handleHikeDelete(chat: string, text: string, messageId: number) {
-  const s = sessionFor(chat);
+  const s = await sessionFor(chat);
   if (!s || s.kind.type !== "hike-delete") return;
   const hikes = await listHikes();
   const trimmed = text.trim();
-  if (/^(cancel|stop)$/i.test(trimmed)) { setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
+  if (/^(cancel|stop)$/i.test(trimmed)) { await setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
   if (trimmed === "all") {
     const ids = hikes.map((h) => h.id);
     const r = await deleteHikes(ids);
-    setSession(chat, null);
+    await setSession(chat, null);
     await sendTelegramMessage(r.ok ? `🗑 Deleted ${ids.length} hikes.` : `❌ ${r.error}`);
     return;
   }
@@ -843,7 +894,7 @@ async function handleHikeDelete(chat: string, text: string, messageId: number) {
   const ids = nums.map((n) => hikes[n - 1].id);
   const names = nums.map((n) => hikes[n - 1].title).join(", ");
   const r = await deleteHikes(ids);
-  setSession(chat, null);
+  await setSession(chat, null);
   await sendTelegramMessage(r.ok ? `🗑 Deleted: ${names}` : `❌ ${r.error}`);
 }
 
@@ -857,49 +908,103 @@ async function startRentDraft(chat: string, text: string, imageUrl?: string, mes
     await sendTelegramMessage(buildRentErrorReply(result.errors));
     return;
   }
-  setSession(chat, { kind: { type: "rent-new" } });
+  await setSession(chat, { kind: { type: "rent-new" } });
   rentDrafts.set(chat, result.item);
   await sendTelegramMessage(
     buildRentItemSummary(result.item) + "\n\nReply <b>YES</b> to save, <b>NO</b> to discard, or /cancel.",
   );
 }
 
+async function handleHikeNewCheck(chat: string, text: string, messageId: number) {
+  const s = await sessionFor(chat);
+  if (!s || s.kind.type !== "hike-new-check") return;
+  const trimmed = text.trim();
+  if (/^(cancel|stop|abort)$/i.test(trimmed)) {
+    await setSession(chat, null);
+    await sendTelegramMessage("Cancelled. Hike not saved. ✋");
+    return;
+  }
+  const idx = s.kind.currentFieldIndex;
+  const fieldKey = s.kind.pendingFields[idx];
+  const fieldDef = HIKE_DEFAULTED_FIELDS.find((f) => f.key === fieldKey);
+  if (!fieldDef) {
+    // Shouldn't happen — skip to next
+    await setSession(chat, { ...s, kind: { ...s.kind, currentFieldIndex: idx + 1 } });
+    return;
+  }
+  const draft = { ...s.kind.draft };
+  if (!/^(keep|skip|default|same)$/i.test(trimmed)) {
+    // Apply the value
+    switch (fieldKey) {
+      case "priceGbp": draft.priceGbp = Number(trimmed); break;
+      case "spotsTotal": draft.spotsTotal = Number(trimmed); break;
+      case "duration": draft.duration = trimmed; break;
+      case "guide": draft.guide = trimmed; break;
+      case "image": draft.image = trimmed; break;
+      case "tags": draft.tags = /^none$/i.test(trimmed) ? [] : trimmed.split(",").map((s: string) => s.trim()).filter(Boolean); break;
+    }
+  }
+  const nextIdx = idx + 1;
+  if (nextIdx >= s.kind.pendingFields.length) {
+    // All fields handled — save directly
+    await setSession(chat, null);
+    const r = await saveHike(draft);
+    if (!r.ok) {
+      await setSession(chat, { kind: { type: "hike-new" }, draft, lastMessageId: messageId });
+      await sendTelegramMessage(`❌ Couldn't save: ${r.error}\n\nLet's try again. Use /new-hike to restart.`);
+      return;
+    }
+    await sendTelegramMessage(
+      `✅ <b>Hike saved and live on the site.</b>\n<a href="${envConfig.publicSiteUrl}/hikes/${r.id}">${envConfig.publicSiteUrl}/hikes/${r.id}</a>`,
+    );
+    return;
+  }
+  // Next field
+  await setSession(chat, { ...s, kind: { ...s.kind, draft, currentFieldIndex: nextIdx } });
+  const nextField = HIKE_DEFAULTED_FIELDS.find((x) => x.key === s.kind.pendingFields[nextIdx])!;
+  const nextMsg = nextField.check(draft)!;
+  await sendTelegramMessage(`✅ Saved. Next up:\n\n${nextMsg}\n\nReply with the value, or <code>keep</code> to keep the current value.`);
+}
+
 async function handleRentEditPick(chat: string, text: string, messageId: number) {
-  const s = sessionFor(chat);
+  const s = await sessionFor(chat);
   if (!s || s.kind.type !== "rent-edit") return;
   const items = await listAllEquipment();
   const trimmed = text.trim();
-  if (/^(cancel|stop)$/i.test(trimmed)) { setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
+  if (/^(cancel|stop)$/i.test(trimmed)) { await setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
   const n = Number(trimmed);
   if (!Number.isInteger(n) || n < 1 || n > items.length) {
     await sendTelegramMessage(`Reply with a number between 1 and ${items.length}, or /cancel.`);
     return;
   }
   const picked = items[n - 1];
-  setSession(chat, { kind: { type: "rent-edit-field", itemId: picked.id, field: "", partial: {} }, lastMessageId: messageId });
+  await setSession(chat, { kind: { type: "rent-edit-field", itemId: picked.id, field: "", partial: {} }, lastMessageId: messageId });
+  const rentFieldLines = RENT_EDITABLE_FIELDS.map((f, i) => `${i + 1}. ${f}`).join("\n");
   await sendTelegramMessage(
     `<b>Editing:</b> ${picked.name} (${picked.type}) — ${picked.location}\n\n` +
-    `Available fields:\n<code>name, type, summary, description, location, pricePerNightGbp, capacity, totalUnits, availableUnits, unitLabel, image, features</code>\n\n` +
-    `Reply with field names, e.g. <code>pricePerNightGbp, totalUnits</code>. Or /cancel.`,
+    `What would you like to change? Reply with <b>number(s)</b>, comma-separated.\n` +
+    `${rentFieldLines}\n\n` +
+    `Example: <code>4,5</code> changes location and price. Or /cancel.`,
   );
 }
 
 async function handleRentEditField(chat: string, text: string, messageId: number) {
-  const s = sessionFor(chat);
+  const s = await sessionFor(chat);
   if (!s || s.kind.type !== "rent-edit-field") return;
   const trimmed = text.trim();
-  if (/^(cancel|stop)$/i.test(trimmed)) { setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
+  if (/^(cancel|stop)$/i.test(trimmed)) { await setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
 
   if (!s.kind.field) {
-    const requested = trimmed.toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
-    const unknown = requested.filter((f) => !RENT_EDITABLE_FIELDS.includes(f as RentField));
-    if (unknown.length > 0) {
-      await sendTelegramMessage(`Unknown: ${unknown.join(", ")}. Valid: ${RENT_EDITABLE_FIELDS.join(", ")}.`);
+    const parts = trimmed.split(",").map((s) => s.trim()).filter(Boolean);
+    const nums = parts.map((p) => Number(p)).filter((n) => Number.isInteger(n));
+    if (nums.length === 0 || nums.some((n) => n < 1 || n > RENT_EDITABLE_FIELDS.length)) {
+      const rentFieldList = RENT_EDITABLE_FIELDS.map((f, i) => `${i + 1}. ${f}`).join("\n");
+      await sendTelegramMessage(`Pick number(s) 1–${RENT_EDITABLE_FIELDS.length}.\n\n${rentFieldList}\n\nExample: <code>4,5</code> changes location and price.`);
       return;
     }
-    if (requested.length === 0) { await sendTelegramMessage("Pick at least one field."); return; }
+    const requested = nums.map((n) => RENT_EDITABLE_FIELDS[n - 1]);
     const first = requested[0] as RentField;
-    setSession(chat, { ...s, kind: { ...s.kind, field: first } });
+    await setSession(chat, { ...s, kind: { ...s.kind, field: first } });
     await sendTelegramMessage(
       `<b>New ${first}?</b>` + (requested.length > 1 ? ` (After this: ${requested.slice(1).join(", ")})` : "") +
       `\n\nReply with the new value, <code>skip</code>, or /cancel.`,
@@ -917,24 +1022,25 @@ async function handleRentEditField(chat: string, text: string, messageId: number
 async function advanceRentFieldQueue(chat: string, s: Session, messageId: number, _justSet?: RentField) {
   if (s.kind.type !== "rent-edit-field") return;
   const partial = s.kind.partial;
-  if (Object.keys(partial).length === 0) { setSession(chat, null); await sendTelegramMessage("No changes made."); return; }
+  if (Object.keys(partial).length === 0) { await setSession(chat, null); await sendTelegramMessage("No changes made."); return; }
   const result = await updateRentItem(s.kind.itemId, partial);
-  if (!result.ok) { setSession(chat, null); await sendTelegramMessage(`❌ Save failed: ${result.error}`); return; }
-  setSession(chat, { ...s, kind: { ...s.kind, field: "", partial: {} } });
+  if (!result.ok) { await setSession(chat, null); await sendTelegramMessage(`❌ Save failed: ${result.error}`); return; }
+  await setSession(chat, { ...s, kind: { ...s.kind, field: "", partial: {} } });
   const lines = Object.keys(partial).map((k) => `• <b>${k}</b>`).join("\n");
-  await sendTelegramMessage(`✅ Updated.\n\n${lines}\n\nWant to change another field? Reply with field names, or <code>done</code>.`);
+  const rentFieldNumList = RENT_EDITABLE_FIELDS.map((f, i) => `${i + 1}. ${f}`).join("\n");
+  await sendTelegramMessage(`✅ Updated.\n\n${lines}\n\nWant to change another field? Reply with number(s), or <code>done</code>.\n\n${rentFieldNumList}`);
 }
 
 async function handleRentDelete(chat: string, text: string, messageId: number) {
-  const s = sessionFor(chat);
+  const s = await sessionFor(chat);
   if (!s || s.kind.type !== "rent-delete") return;
   const items = await listAllEquipment();
   const trimmed = text.trim();
-  if (/^(cancel|stop)$/i.test(trimmed)) { setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
+  if (/^(cancel|stop)$/i.test(trimmed)) { await setSession(chat, null); await sendTelegramMessage("Cancelled. ✋"); return; }
   if (trimmed === "all") {
     const ids = items.map((it) => it.id);
     const r = await deleteRentItems(ids);
-    setSession(chat, null);
+    await setSession(chat, null);
     await sendTelegramMessage(r.ok ? `🗑 Deleted ${ids.length} items.` : `❌ ${r.error}`);
     return;
   }
@@ -946,7 +1052,7 @@ async function handleRentDelete(chat: string, text: string, messageId: number) {
   }
   const ids = nums.map((n) => items[n - 1].id);
   const r = await deleteRentItems(ids);
-  setSession(chat, null);
+  await setSession(chat, null);
   const names = nums.map((n) => items[n - 1].name).join(", ");
   await sendTelegramMessage(r.ok ? `🗑 Deleted: ${names}` : `❌ ${r.error}`);
 }

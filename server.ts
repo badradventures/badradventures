@@ -3,7 +3,6 @@ import type { ViteDevServer } from "vite";
 import { createServer as createViteServer } from "vite";
 import { Hono } from "hono";
 import { mountRoutes } from "./backend-lib/routes";
-import { mountTelegramRoutes } from "./backend-lib/telegram-commands";
 import "./backend-lib/db";
 
 type Mode = "development" | "production";
@@ -34,7 +33,6 @@ if (configEnv) {
 }
 
 mountRoutes(app);
-mountTelegramRoutes(app);
 
 if (mode === "production") {
   configureProduction(app);

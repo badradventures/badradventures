@@ -47,6 +47,60 @@ export type EquipmentRow = {
 };
 
 // ---------------------------------------------------------------------------
+// Equipment patch/update
+// ---------------------------------------------------------------------------
+
+export type EquipmentPatch = {
+  type?: string;
+  name?: string;
+  summary?: string;
+  description?: string;
+  image?: string;
+  location?: string;
+  pricePerNightGbp?: number;
+  capacity?: number;
+  totalUnits?: number;
+  availableUnits?: number;
+  unitLabel?: string;
+  features?: string[];
+};
+
+export async function patchEquipment(
+  id: string,
+  patch: EquipmentPatch,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const existing = await loadEquipmentById(id);
+    if (!existing) return { ok: false, error: "Equipment not found." };
+    const row: Record<string, unknown> = {};
+    if (patch.type !== undefined) row.type = patch.type;
+    if (patch.name !== undefined) row.name = patch.name;
+    if (patch.summary !== undefined) row.summary = patch.summary;
+    if (patch.description !== undefined) row.description = patch.description;
+    if (patch.image !== undefined) row.image = patch.image;
+    if (patch.location !== undefined) row.location = patch.location;
+    if (patch.capacity !== undefined) row.capacity = patch.capacity;
+    if (patch.totalUnits !== undefined) row.total_units = patch.totalUnits;
+    if (patch.availableUnits !== undefined) {
+      const total =
+        patch.totalUnits !== undefined ? patch.totalUnits : existing.total_units;
+      row.available_units = Math.max(0, Math.min(patch.availableUnits, total));
+    }
+    if (patch.pricePerNightGbp !== undefined) {
+      row.price_pence = Math.round(patch.pricePerNightGbp * 100);
+    }
+    if (patch.unitLabel !== undefined) row.unit_label = patch.unitLabel;
+    if (patch.features !== undefined) row.features = patch.features;
+    if (Object.keys(row).length === 0) return { ok: true };
+    const { error } = await supabaseAdmin().from("equipment").update(row).eq("id", id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Hikes
 // ---------------------------------------------------------------------------
 
@@ -67,6 +121,12 @@ export async function loadHikeById(id: string): Promise<HikeRow | null> {
     .maybeSingle();
   if (error) throw new Error(error.message);
   return data ? normaliseHike(data) : null;
+}
+
+export async function loadHikeByIdFull(
+  id: string,
+): Promise<HikeRow | null> {
+  return loadHikeById(id);
 }
 
 export async function insertHike(input: HikeRow): Promise<void> {
@@ -90,6 +150,23 @@ export async function insertHike(input: HikeRow): Promise<void> {
   });
   if (error) throw new Error(error.message);
 }
+
+export type HikePatch = {
+  title?: string;
+  location?: string;
+  region?: string;
+  date?: string;
+  duration?: string;
+  difficulty?: string;
+  spotsTotal?: number;
+  priceGbp?: number;
+  summary?: string;
+  description?: string;
+  image?: string;
+  hero?: string;
+  guide?: string;
+  tags?: string[];
+};
 
 export async function patchHike(
   id: string,

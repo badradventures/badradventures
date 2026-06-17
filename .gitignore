@@ -3,3 +3,6 @@ dist/
 zosite.jsondata/
 bun.lock
 package-lock.json
+.env.local
+.env
+supabase/.temp/

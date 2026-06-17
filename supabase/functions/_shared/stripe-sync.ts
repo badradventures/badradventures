@@ -15,8 +15,8 @@ import {
   reactivateProduct,
   findProductByMetadata,
   isStripeConfigured,
-} from "./stripe";
-import type { HikeRow, EquipmentRow } from "./db";
+} from "./stripe.ts";
+import type { HikeRow, EquipmentRow } from "./db.ts";
 
 // ---------------------------------------------------------------------------
 // Hikes

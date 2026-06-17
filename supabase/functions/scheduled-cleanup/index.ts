@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const cutoff = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
+    const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000).toISOString();
 
     console.log(
       `[scheduled-cleanup] deleting contact_messages older than ${olderThanDays} days (before ${new Date(cutoff).toISOString()})`,

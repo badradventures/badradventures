@@ -10,9 +10,9 @@ export class StripeError extends Error {
 }
 
 function basicAuthHeader(): Record<string, string> {
-  const key = process.env.STRIPE_SECRET_KEY;
+  const key = Deno.env.get("STRIPE_SECRET_KEY");
   if (!key) throw new StripeError(503, "Stripe is not configured.");
-  return { Authorization: `Basic ${Buffer.from(key + ":").toString("base64")}` };
+  return { Authorization: `Basic ${btoa(key + ":")}` };
 }
 
 async function stripePost<T>(path: string, body: Record<string, string> | URLSearchParams): Promise<T> {
@@ -53,7 +53,7 @@ export type StripeCheckoutSession = {
 };
 
 export function isStripeConfigured(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY);
+  return Boolean(Deno.env.get("STRIPE_SECRET_KEY"));
 }
 
 export async function createCheckoutSession(args: {
