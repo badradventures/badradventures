@@ -19,7 +19,7 @@ import {
 import { api } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
-import { resetSupabaseClient } from "@/lib/supabase";
+import { supabase, resetSupabaseClient } from "@/lib/supabase";
 import { clearStoredUser } from "@/lib/api";
 import { CartBadge } from "@/lib/cart-context";
 
@@ -91,8 +91,14 @@ export function SiteShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const signOut = async () => {
-    // Clear localStorage FIRST — removes all session data
+    const signOut = async () => {
+    // 1. Call Supabase signOut FIRST to invalidate the server-side session
+    try {
+      await supabase().auth.signOut();
+    } catch {
+      // ignore — keep going even if the API call fails
+    }
+    // 2. Then blow away every trace of session data from localStorage
     try {
       const knownKeys = [
         "badr.supabase.session",
@@ -117,8 +123,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
     resetSupabaseClient();
     setUser(null);
     toast.success("Signed out");
-    // Hard redirect forces a clean page load — supabase re-initialises
-    // from scratch against the (now-empty) localStorage.
+    // Hard redirect forces a clean page load
     window.location.href = "/";
   };
 
