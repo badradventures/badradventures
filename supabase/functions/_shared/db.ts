@@ -25,6 +25,7 @@ export type HikeRow = {
   hero: string;
   tags: string[];
   guide: string;
+  stripe_product_id?: string | null;
 };
 
 export type EquipmentRow = {
@@ -42,6 +43,7 @@ export type EquipmentRow = {
   available_units: number;
   features: string[];
   created_at: string;
+  stripe_product_id?: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -163,6 +165,30 @@ export async function countHikeBookings(hikeId: string): Promise<number> {
 // ---------------------------------------------------------------------------
 // Equipment
 // ---------------------------------------------------------------------------
+
+/** Persist a Stripe product id onto a hike row. Used after syncHikeToStripe. */
+export async function setHikeStripeProductId(
+  id: string,
+  productId: string,
+): Promise<void> {
+  const { error } = await supabaseAdmin()
+    .from("hikes")
+    .update({ stripe_product_id: productId })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** Persist a Stripe product id onto an equipment row. Used after syncEquipmentToStripe. */
+export async function setEquipmentStripeProductId(
+  id: string,
+  productId: string,
+): Promise<void> {
+  const { error } = await supabaseAdmin()
+    .from("equipment")
+    .update({ stripe_product_id: productId })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
 
 export async function listAllEquipment(type?: string): Promise<EquipmentRow[]> {
   let q = supabaseAdmin()
@@ -429,6 +455,7 @@ function normaliseHike(r: Record<string, unknown>): HikeRow {
     hero: (r.hero as string) ?? (r.image as string),
     tags: (r.tags as string[]) ?? [],
     guide: r.guide as string,
+    stripe_product_id: (r.stripe_product_id as string | null) ?? null,
   };
 }
 
@@ -448,5 +475,6 @@ function normaliseEquipment(r: Record<string, unknown>): EquipmentRow {
     available_units: r.available_units as number,
     features: (r.features as string[]) ?? [],
     created_at: r.created_at as string,
+    stripe_product_id: (r.stripe_product_id as string | null) ?? null,
   };
 }

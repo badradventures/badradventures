@@ -18,8 +18,14 @@ import {
   listAllHikes, loadHikeByIdFull, insertHike, patchHike, deleteHike,
   listAllEquipment, loadEquipmentById, upsertEquipment, patchEquipment, deleteEquipment,
   countTelegramAllowlist, isTelegramChatAllowed, insertTelegramAllowlist,
+  setHikeStripeProductId, setEquipmentStripeProductId,
   type HikePatch,
 } from "../_shared/db.ts";
+import {
+  syncHikeToStripe, removeHikeFromStripe,
+  syncEquipmentToStripe, removeEquipmentFromStripe,
+} from "../_shared/stripe-sync.ts";
+import { isStripeConfigured } from "../_shared/stripe.ts";
 
 // ---------------------------------------------------------------------------
 // Environment
@@ -296,6 +302,20 @@ async function saveHike(h: ParsedHike): Promise<{ ok: true; id: string } | { ok:
       summary: h.summary, description: h.description, image: h.image, hero: h.hero, tags: h.tags, guide: h.guide,
       price_pence: Math.round(h.priceGbp * 100),
     });
+    // Sync to Stripe (best-effort; never block the bot)
+    if (isStripeConfigured()) {
+      try {
+        const reloaded = await loadHikeByIdFull(h.id);
+        if (reloaded) {
+          const { productId } = await syncHikeToStripe(reloaded);
+          if (productId && productId !== reloaded.stripe_product_id) {
+            await setHikeStripeProductId(h.id, productId);
+          }
+        }
+      } catch (err) {
+        console.error("[stripe-sync] saveHike sync failed:", err);
+      }
+    }
     return { ok: true, id: h.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -320,7 +340,22 @@ async function updateHike(id: string, body: Record<string, unknown>): Promise<{ 
     if (body.priceGbp !== undefined) patch.priceGbp = Number(body.priceGbp);
     if (body.tags !== undefined) patch.tags = body.tags as string[];
     const result = await patchHike(id, patch);
-    return result;
+    if (!result.ok) return result;
+    // Sync to Stripe
+    if (isStripeConfigured()) {
+      try {
+        const reloaded = await loadHikeByIdFull(id);
+        if (reloaded) {
+          const { productId } = await syncHikeToStripe(reloaded);
+          if (productId && productId !== reloaded.stripe_product_id) {
+            await setHikeStripeProductId(id, productId);
+          }
+        }
+      } catch (err) {
+        console.error("[stripe-sync] updateHike sync failed:", err);
+      }
+    }
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -329,8 +364,27 @@ async function updateHike(id: string, body: Record<string, unknown>): Promise<{ 
 async function deleteHikes(ids: string[]): Promise<{ ok: true } | { ok: false; error: string }> {
   let count = 0;
   for (const id of ids) {
+    // Capture the stripe_product_id before deletion so we can archive the product
+    let productId: string | null | undefined;
+    if (isStripeConfigured()) {
+      try {
+        const existing = await loadHikeByIdFull(id);
+        productId = existing?.stripe_product_id;
+      } catch (err) {
+        console.error("[stripe-sync] deleteHikes preload failed:", err);
+      }
+    }
     const ok = await deleteHike(id);
-    if (ok) count++;
+    if (ok) {
+      count++;
+      if (isStripeConfigured()) {
+        try {
+          await removeHikeFromStripe(productId, id);
+        } catch (err) {
+          console.error("[stripe-sync] deleteHikes archive failed:", err);
+        }
+      }
+    }
   }
   return count > 0 ? { ok: true } : { ok: false, error: "No hikes deleted." };
 }
@@ -345,6 +399,19 @@ async function saveRentItem(it: ParsedRent): Promise<{ ok: true; id: string } | 
       capacity: it.capacity, totalUnits: it.totalUnits, availableUnits: it.availableUnits,
       unitLabel: it.unitLabel, features: it.features,
     });
+    if (isStripeConfigured()) {
+      try {
+        const reloaded = await loadEquipmentById(it.id);
+        if (reloaded) {
+          const { productId } = await syncEquipmentToStripe(reloaded);
+          if (productId && productId !== reloaded.stripe_product_id) {
+            await setEquipmentStripeProductId(it.id, productId);
+          }
+        }
+      } catch (err) {
+        console.error("[stripe-sync] saveRentItem sync failed:", err);
+      }
+    }
     return { ok: true, id: it.id };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -367,7 +434,21 @@ async function updateRentItem(id: string, body: Record<string, unknown>): Promis
     if (body.unitLabel !== undefined) patch.unitLabel = body.unitLabel;
     if (body.features !== undefined) patch.features = body.features;
     const result = await patchEquipment(id, patch as any);
-    return result;
+    if (!result.ok) return result;
+    if (isStripeConfigured()) {
+      try {
+        const reloaded = await loadEquipmentById(id);
+        if (reloaded) {
+          const { productId } = await syncEquipmentToStripe(reloaded);
+          if (productId && productId !== reloaded.stripe_product_id) {
+            await setEquipmentStripeProductId(id, productId);
+          }
+        }
+      } catch (err) {
+        console.error("[stripe-sync] updateRentItem sync failed:", err);
+      }
+    }
+    return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -376,8 +457,26 @@ async function updateRentItem(id: string, body: Record<string, unknown>): Promis
 async function deleteRentItems(ids: string[]): Promise<{ ok: true } | { ok: false; error: string }> {
   let count = 0;
   for (const id of ids) {
+    let productId: string | null | undefined;
+    if (isStripeConfigured()) {
+      try {
+        const existing = await loadEquipmentById(id);
+        productId = existing?.stripe_product_id;
+      } catch (err) {
+        console.error("[stripe-sync] deleteRentItems preload failed:", err);
+      }
+    }
     const ok = await deleteEquipment(id);
-    if (ok) count++;
+    if (ok) {
+      count++;
+      if (isStripeConfigured()) {
+        try {
+          await removeEquipmentFromStripe(productId, id);
+        } catch (err) {
+          console.error("[stripe-sync] deleteRentItems archive failed:", err);
+        }
+      }
+    }
   }
   return count > 0 ? { ok: true } : { ok: false, error: "No items deleted." };
 }
