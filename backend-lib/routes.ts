@@ -67,6 +67,7 @@ import {
   insertHikeBooking,
   insertEquipmentBooking,
   listHikeBookingsForUser,
+  listHikeBookingsForUserWithHike,
   loadHikeBookingById,
   updateHikeBooking,
   updateEquipmentBooking,
@@ -641,8 +642,22 @@ export function mountRoutes(app: Hono) {
   app.get("/api/my/bookings", async (c) => {
     try {
       const session = await requireUser(c);
-      const rows = await listHikeBookingsForUser(session.sub);
-      return c.json({ bookings: rows });
+      const rows = await listHikeBookingsForUserWithHike(session.sub);
+      return c.json({
+        bookings: rows.map((r) => ({
+          id: r.id,
+          hikeId: r.hikeId,
+          hikeTitle: r.hike_title ?? "",
+          hikeDate: r.hike_date ?? "",
+          hikeLocation: r.hike_location ?? "",
+          partySize: r.partySize,
+          totalPence: r.totalPence,
+          status: r.status,
+          paymentStatus: r.paymentStatus,
+          createdAt: r.createdAt,
+          stripeSessionId: r.stripeSessionId,
+        })),
+      });
     } catch (err) {
       return handleError(err);
     }

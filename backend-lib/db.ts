@@ -568,16 +568,22 @@ export async function listHikeBookingsForUserWithHike(
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  type Joined = BookingRow & {
-    hikes: { title: string; date: string; location: string } | null;
-  };
   return (data ?? []).map((r) => {
-    const j = r as unknown as Joined;
+    const row = r as Record<string, unknown>;
+    const hikes = row.hikes as { title: string; date: string; location: string } | null;
     return {
-      ...j,
-      hike_title: j.hikes?.title ?? null,
-      hike_date: j.hikes?.date ?? null,
-      hike_location: j.hikes?.location ?? null,
+      id: row.id as string,
+      userId: row.user_id as string,
+      hikeId: row.hike_id as string,
+      partySize: row.party_size as number,
+      status: row.status as string,
+      paymentStatus: row.payment_status as string,
+      totalPence: (row.total_pence as number | null) ?? 0,
+      stripeSessionId: (row.stripe_session_id as string | null) ?? null,
+      createdAt: row.created_at as string,
+      hike_title: hikes?.title ?? null,
+      hike_date: hikes?.date ?? null,
+      hike_location: hikes?.location ?? null,
     };
   });
 }
