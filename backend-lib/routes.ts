@@ -651,7 +651,7 @@ export function mountRoutes(app: Hono) {
   // -----------------------------------------------------------------
   // Cart checkout (multi-item checkout session)
   // -----------------------------------------------------------------
-  app.post("/api/checkout", async (c) => {
+  const checkoutHandler = async (c: Context) => {
     try {
       const session = await requireUser(c);
       const body = z
@@ -789,6 +789,8 @@ export function mountRoutes(app: Hono) {
       return handleError(err);
     }
   });
+  app.post("/api/checkout", checkoutHandler);
+  app.post("/api/cart/checkout", checkoutHandler);
 
   // -----------------------------------------------------------------
   // Contact
