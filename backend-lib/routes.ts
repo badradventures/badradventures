@@ -788,8 +788,7 @@ export function mountRoutes(app: Hono) {
     } catch (err) {
       return handleError(err);
     }
-  });
-  app.post("/api/checkout", checkoutHandler);
+  };
   app.post("/api/cart/checkout", checkoutHandler);
 
   // -----------------------------------------------------------------
