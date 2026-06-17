@@ -16,8 +16,7 @@ function basicAuthHeader(): Record<string, string> {
 }
 
 async function stripePost<T>(path: string, body: Record<string, string> | URLSearchParams): Promise<T> {
-  const form = new URLSearchParams();
-  for (const [k, v] of Object.entries(body)) form.append(k, v);
+  const form = body instanceof URLSearchParams ? body : new URLSearchParams(body);
   const res = await fetch(`${STRIPE_API}${path}`, {
     method: "POST",
     headers: { ...basicAuthHeader(), "Content-Type": "application/x-www-form-urlencoded" },
