@@ -94,15 +94,21 @@ export function SiteShell({ children }: { children: ReactNode }) {
   const signOut = async () => {
     // Clear localStorage FIRST — removes all session data
     try {
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith("badr.") || key.startsWith("sb-"))) {
-          keysToRemove.push(key);
-        }
-      }
-      for (const key of keysToRemove) {
+      const knownKeys = [
+        "badr.supabase.session",
+        "badr.supabase.session-code-verifier",
+        "badr.user",
+        "badr.cart",
+      ];
+      for (const key of knownKeys) {
         localStorage.removeItem(key);
+      }
+      // Also remove any key starting with sb- (Supabase internal)
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("sb-")) {
+          localStorage.removeItem(key);
+        }
       }
     } catch {
       // ignore
