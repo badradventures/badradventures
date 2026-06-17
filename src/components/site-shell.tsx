@@ -19,7 +19,7 @@ import {
 import { api } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
-import { supabase, resetSupabaseClient } from "@/lib/supabase";
+import { resetSupabaseClient } from "@/lib/supabase";
 import { clearStoredUser } from "@/lib/api";
 import { CartBadge } from "@/lib/cart-context";
 
@@ -92,17 +92,17 @@ export function SiteShell({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    // Clear localStorage FIRST — removes all session data
     try {
-      await supabase().auth.signOut();
-    } catch {
-      // ignore
-    }
-    // Manually clear ALL persisted session data so a page reload doesn't re-auth
-    try {
-      for (const key of Object.keys(localStorage)) {
-        if (key.startsWith("badr.") || key.startsWith("sb-")) {
-          localStorage.removeItem(key);
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith("badr.") || key.startsWith("sb-"))) {
+          keysToRemove.push(key);
         }
+      }
+      for (const key of keysToRemove) {
+        localStorage.removeItem(key);
       }
     } catch {
       // ignore
@@ -111,7 +111,9 @@ export function SiteShell({ children }: { children: ReactNode }) {
     resetSupabaseClient();
     setUser(null);
     toast.success("Signed out");
-    navigate("/");
+    // Hard redirect forces a clean page load — supabase re-initialises
+    // from scratch against the (now-empty) localStorage.
+    window.location.href = "/";
   };
 
   const value = useMemo<AuthContextValue>(
