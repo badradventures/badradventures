@@ -1216,7 +1216,7 @@ export function mountRoutes(app: Hono) {
         .insert({
           chat_id: chatId,
           label: body.label ?? null,
-          added_at: Date.now(),
+          added_at: new Date().toISOString(),
           added_by: user.email,
         });
       if (error) return c.json({ error: error.message }, 500);
