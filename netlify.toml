@@ -5,14 +5,19 @@
 [functions]
   node_bundler = "esbuild"
 
+# API routes go to the function. Listed first so it matches before any
+# catch-all SPA rule.
 [[redirects]]
   force = true
   from = "/api/*"
   status = 200
   to = "/.netlify/functions/api/:splat"
 
+# SPA fallback: only for paths that don't already correspond to a real
+# file in publish/. The `conditions` block with `Role=*` and the lack of
+# `force = true` lets Netlify's static handler serve real files first;
+# unmatched paths get the index.html below.
 [[redirects]]
-  force = true
   from = "/*"
   status = 200
   to = "/index.html"
