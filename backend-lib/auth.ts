@@ -122,17 +122,11 @@ export function readSession(c: Context): SessionPayload | null {
 export async function readSessionAsync(
   c: Context,
 ): Promise<SessionPayload | null> {
-  // 1. Try Bearer header first (browser SDK path).
+  // 1. Bearer header (browser Supabase SDK path).
   const bearer = await readBearerSession(c);
   if (bearer) return bearer;
 
-  // 2. Try token from query parameter (Zo proxy strips Authorization/Cookie headers).
-  const tokenParam = c.req.query("token");
-  if (tokenParam) {
-    return sessionFromAccessToken(tokenParam);
-  }
-
-  // 3. Fall back to the legacy cookie (admin/server paths).
+  // 2. Legacy badr_session cookie (server-to-server/admin flows).
   const raw = c.req.header("cookie") || "";
   const match = raw
     .split(/;\s*/)

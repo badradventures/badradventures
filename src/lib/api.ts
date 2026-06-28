@@ -6,19 +6,19 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const session = await supabase().auth.getSession();
   const accessToken = session.data.session?.access_token;
 
-  // The Zo proxy (zite-*.zo.computer) strips Authorization and Cookie headers,
-  // so pass the token as a query parameter instead.
-  const separator = path.includes("?") ? "&" : "?";
-  const url = accessToken ? `${path}${separator}token=${encodeURIComponent(accessToken)}` : path;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    ...(init?.headers as Record<string, string> | undefined ?? {}),
+  };
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
 
-  const res = await fetch(url, {
+  const res = await fetch(path, {
     credentials: "include",
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
   });
 
   const text = await res.text();
