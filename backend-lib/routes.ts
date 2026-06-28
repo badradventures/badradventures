@@ -126,10 +126,14 @@ function handleError(err: unknown): Response {
   }
   // eslint-disable-next-line no-console
   console.error("[api] unhandled error", err);
-  return new Response(JSON.stringify({ error: "Server error" }), {
-    status: 500,
-    headers: { "Content-Type": "application/json" },
-  });
+  const detail = err instanceof Error ? err.message : String(err);
+  return new Response(
+    JSON.stringify({ error: "Server error", detail }),
+    {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 }
 
 // ---------- mount ----------
