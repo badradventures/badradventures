@@ -126,14 +126,10 @@ function handleError(err: unknown): Response {
   }
   // eslint-disable-next-line no-console
   console.error("[api] unhandled error", err);
-  const detail = err instanceof Error ? err.message : String(err);
-  return new Response(
-    JSON.stringify({ error: "Server error", detail }),
-    {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    },
-  );
+  return new Response(JSON.stringify({ error: "Server error" }), {
+    status: 500,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 // ---------- mount ----------
@@ -959,12 +955,12 @@ export function mountRoutes(app: Hono) {
       await requireAdmin(c);
       const id = c.req.param("id");
       // Refuse to delete a hike that has bookings
-      const { data: count } = await supabaseAdmin()
+      const { count, error: countError } = await supabaseAdmin()
         .from("bookings")
         .select("id", { count: "exact", head: true })
         .eq("hike_id", id);
-      const n = (count as unknown as { length?: number } | null) ?? 0;
-      const has = Array.isArray(n) ? n.length : ((n as unknown as number) || 0);
+      if (countError) throw new Error(countError.message);
+      const has = count ?? 0;
       if (has > 0) {
         return c.json(
           {
