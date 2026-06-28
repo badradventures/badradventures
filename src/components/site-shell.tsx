@@ -12,16 +12,15 @@ import {
   LogOut,
   Mountain,
   MountainSnow,
-  ShoppingBag,
   Sparkles,
   UserPlus,
+  ShoppingBag,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
 import { supabase, resetSupabaseClient } from "@/lib/supabase";
 import { clearStoredUser } from "@/lib/api";
-import { CartBadge } from "@/lib/cart-context";
+import { useCart } from "@/lib/cart-context";
 
 export type Me = {
   id: string;
@@ -61,7 +60,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { count } = useCart();
+  useCart();
 
   const refresh = async () => {
     try {
@@ -238,15 +237,6 @@ export function SiteShell({ children }: { children: ReactNode }) {
                   >
                     <UserPlus className="h-4 w-4" /> Sign up
                     <span className="ml-1 h-1.5 w-1.5 rounded-full bg-rust transition-transform group-hover:scale-150" />
-                  </Link>
-                  <Link
-                    to="/cart"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink-2 transition hover:border-pine hover:text-pine"
-                  >
-                    <ShoppingBag className="h-4 w-4" />
-                    {count > 0 && (
-                      <span className="ml-1 h-1.5 w-1.5 rounded-full bg-rust" />
-                    )}
                   </Link>
                 </>
               )}
