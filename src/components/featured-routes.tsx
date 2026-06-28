@@ -83,7 +83,7 @@ export default function FeaturedRoutes() {
   const root = useRef<HTMLElement | null>(null);
   const headRef = useRef<HTMLDivElement | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
-  const [hikes, setHikes] = useState<Hike[]>(FALLBACK_HIKES);
+  const [hikes, setHikes] = useState<Hike[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -161,9 +161,15 @@ export default function FeaturedRoutes() {
                   className="h-[420px] animate-pulse rounded-sm border border-ink/10 bg-stone-200/40"
                 />
               ))
-            : hikes.map((hike, i) => (
+            : hikes.length
+            ? hikes.map((hike, i) => (
                 <FeaturedCard key={hike.id} hike={hike} index={i} />
-              ))}
+              ))
+            : (
+                <div className="col-span-full text-center text-ink/50">
+                  No upcoming expeditions.
+                </div>
+              )}
         </div>
       </div>
     </section>
