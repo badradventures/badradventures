@@ -1,0 +1,13 @@
+{
+  "name": "Badr Adventures UK",
+  "short_name": "Badr Hikes",
+  "description": "Guided hikes across the Lake District, Peak District, Snowdonia and beyond",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f1e8",
+  "theme_color": "#1a1a18",
+  "icons": [
+    { "src": "/images/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/images/logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
