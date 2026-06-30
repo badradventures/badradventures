@@ -39,7 +39,6 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[redirects]]
-  force = true
   from = "/*"
   status = 200
   to = "/index.html"
