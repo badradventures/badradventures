@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/components/site-shell";
 import { toast } from "sonner";
+import { usePageSeo } from "@/lib/seo";
 
 type Overview = {
   counts: {
@@ -114,6 +115,7 @@ const emptyEquipment: Partial<AdminEquipment> = {
 };
 
 export default function AdminPage() {
+  usePageSeo({ path: "/admin", title: "Admin", description: "Badr Adventures admin dashboard.", noindex: true });
   const { user } = useAuth();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [hikes, setHikes] = useState<AdminHike[]>([]);

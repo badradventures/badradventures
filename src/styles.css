@@ -148,6 +148,10 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+  /* Keyboard focus ring — visible only for keyboard users */
+  *:focus-visible {
+    outline: 2px solid var(--ring);
+  }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-body);

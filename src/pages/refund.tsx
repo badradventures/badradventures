@@ -4,7 +4,7 @@ import { usePageSeo as useSeo } from "@/lib/seo";
 
 export default function RefundPage() {
   useSeo({
-    path: "/refund-policy",
+    path: "/refund",
     title: "Refund policy",
     description:
       "Badr Adventures UK Ltd cancellation and refund policy for hike bookings and equipment rental.",

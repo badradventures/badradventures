@@ -30,17 +30,25 @@ export function organizationJsonLd() {
     "@type": "LocalBusiness",
     "@id": ORG_ID,
     name: ORG_NAME,
-    legalName: `${ORG_NAME}`,
+    legalName: ORG_NAME,
     url: SITE_URL,
-    logo: `${SITE_URL}/og-default.png`,
+    logo: `${SITE_URL}/images/logo.png`,
     image: `${SITE_URL}/og-default.png`,
     description:
       "Badr Adventures runs guided hikes across the Lake District, Peak District, Snowdonia and beyond. Small groups, qualified guides, real trips.",
     telephone: "+44-0000-000000",
+    email: "jefferygo0o@gmail.com",
     priceRange: "££",
+    currenciesAccepted: "GBP",
+    paymentAccepted: "Cash, Credit Card",
     address: {
       "@type": "PostalAddress",
       ...REGISTERED_OFFICE,
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: 54.8905,
+      longitude: -2.9441,
     },
     areaServed: [
       { "@type": "AdministrativeArea", name: "Lake District" },
@@ -54,9 +62,7 @@ export function organizationJsonLd() {
       "Mountain scrambling",
       "Hill walking",
     ],
-    sameAs: [
-      // Populated when the brand has public social profiles.
-    ],
+    sameAs: [],
     openingHoursSpecification: [
       {
         "@type": "OpeningHoursSpecification",
@@ -96,7 +102,7 @@ export function websiteJsonLd() {
   };
 }
 
-/** A single guided hike as a TouristTrip (or Event) with Offer. */
+/** A single guided hike as a TouristTrip + Event with Offer. */
 export function hikeJsonLd(hike: {
   id: string;
   title: string;
@@ -114,16 +120,22 @@ export function hikeJsonLd(hike: {
 }) {
   const url = `${SITE_URL}/hikes/${hike.id}`;
   const inStock = hike.spotsLeft > 0;
+  const startDate = new Date(hike.date);
+  const endDate = new Date(startDate.getTime() + 8 * 60 * 60 * 1000);
   return {
     "@context": "https://schema.org",
-    "@type": "TouristTrip",
+    "@type": ["TouristTrip", "Event"],
     "@id": url,
     name: hike.title,
     description: hike.description || hike.summary,
     image: hike.image.startsWith("http") ? hike.image : `${SITE_URL}${hike.image}`,
     url,
     touristType: "Outdoor enthusiasts",
-    itinerary: {
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    startDate: isNaN(startDate.getTime()) ? hike.date : startDate.toISOString(),
+    endDate: isNaN(endDate.getTime()) ? hike.date : endDate.toISOString(),
+    location: {
       "@type": "Place",
       name: hike.location,
       address: { "@type": "PostalAddress", addressRegion: hike.region, addressCountry: "GB" },
@@ -141,6 +153,9 @@ export function hikeJsonLd(hike: {
       seller: { "@id": ORG_ID },
     },
     provider: { "@id": ORG_ID },
+    organizer: { "@id": ORG_ID },
+    remainingAttendeeCapacity: hike.spotsLeft,
+    maximumAttendeeCapacity: hike.spotsTotal,
   };
 }
 

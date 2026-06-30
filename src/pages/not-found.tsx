@@ -1,8 +1,17 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Mountain } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { usePageSeo } from "@/lib/seo";
 
 export default function NotFoundPage() {
+  usePageSeo({
+    path: "/404",
+    title: "Page not found",
+    description: "The page you're looking for is somewhere off the map.",
+    noindex: true,
+  });
+
   return (
     <main className="mx-auto flex min-h-[calc(100vh-200px)] max-w-xl flex-col items-center justify-center px-4 py-20 text-center">
       <div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-emerald-900 text-amber-300">

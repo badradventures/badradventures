@@ -4,9 +4,16 @@ import { CheckCircle2, Compass, Mountain, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { usePageSeo } from "@/lib/seo";
 import { toast } from "sonner";
 
 export default function BookingSuccessPage() {
+  usePageSeo({
+    path: "/booking-success",
+    title: "Booking confirmed",
+    description: "Your Badr Adventures booking is confirmed. Check your email for the kit list and meet details.",
+    noindex: true,
+  });
   const [params] = useSearchParams();
   const bookingId = params.get("booking_id") || params.get("booking") || "";
   const sessionId = params.get("session_id") || "";

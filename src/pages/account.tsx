@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarDays, Compass, MapPin, ShieldCheck, Star, Users } from "lucide-react";
 import { api, formatDate, formatGbp, storedUser, setStoredUser, clearStoredUser } from "@/lib/api";
+import { usePageSeo } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,7 @@ const RESERVATION_PAYMENT_BADGE: Record<string, string> = {
 };
 
 export default function AccountPage() {
+  usePageSeo({ path: "/account", title: "Account", description: "Manage your Badr Adventures account, bookings, and gear rentals.", noindex: true });
   const { user, refresh } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);

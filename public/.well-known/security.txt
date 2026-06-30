@@ -1,0 +1,9 @@
+Contact: mailto:jefferygo0o@gmail.com
+Contact: https://badradventures.co.uk/contact
+Expires: 2027-12-31T23:59:59z
+Preferred-Languages: en-GB, en
+Canonical: https://badradventures.co.uk/.well-known/security.txt
+
+# We acknowledge well-intentioned security research and ask that
+# researchers give us a reasonable window to respond before public
+# disclosure. We do not currently run a paid bug bounty programme.

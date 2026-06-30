@@ -16,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { api, formatDate, formatGbp } from "@/lib/api";
+import { usePageSeo } from "@/lib/seo";
 import { useAuth } from "@/components/site-shell";
 import { toast } from "sonner";
 
@@ -93,6 +94,7 @@ function daysUntil(d: string) {
 }
 
 export default function BookingsPage() {
+  usePageSeo({ path: "/bookings", title: "My bookings", description: "Your upcoming and past Badr Adventures hikes and equipment rentals.", noindex: true });
   const { user, refresh, signOut } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);

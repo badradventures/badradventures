@@ -25,6 +25,8 @@ import { useJsonLd } from "@/lib/seo";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/json-ld";
 import CookieConsentBanner from "@/components/cookie-consent-banner";
 import UmamiTracker from "@/lib/umami";
+import { startWebVitals as initWebVitals } from "@/lib/web-vitals";
+import { onConsentChange, hasAnalyticsConsent } from "@/lib/cookie-consent";
 
 export type Me = {
   id: string;
@@ -99,6 +101,14 @@ export function SiteShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (hasAnalyticsConsent()) initWebVitals();
+    const off = onConsentChange((d) => {
+      if (d.categories.analytics) initWebVitals();
+    });
+    return off;
+  }, []);
+
       const signOut = async () => {
     // Nuclear clear: destroy EVERYTHING before Supabase can re-hydrate
     try {
@@ -154,6 +164,12 @@ export function SiteShell({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       <div className="min-h-screen bg-paper text-ink font-body">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-pine focus:px-4 focus:py-2 focus:text-amber-200 focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
         {/* --- HEADER --- */}
         <header
           className={
@@ -327,7 +343,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
           )}
         </header>
 
-        <main>{children}</main>
+        <main id="main-content">{children}</main>
 
         {/* --- FOOTER --- */}
         <footer className="relative mt-24 overflow-hidden border-t border-ink/10 bg-pine text-paper">
@@ -420,7 +436,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
                   </Link>
                 </li>
                 <li>
-                  <Link to="/refund-policy" className="text-paper/80 hover:text-amber-200">
+                  <Link to="/refund" className="text-paper/80 hover:text-amber-200">
                     Refund Policy
                   </Link>
                 </li>

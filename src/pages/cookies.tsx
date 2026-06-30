@@ -26,6 +26,22 @@ export default function CookiesPage() {
           </CardHeader>
           <CardContent className="text-sm text-stone-600">
             <p>Cookies are small text files stored on your device when you visit a website. Some are essential for the site to function; others help us understand how visitors use the site. Under UK GDPR and the Privacy and Electronic Communications Regulations (PECR), we ask for your consent before placing non-essential cookies.</p>
+            <p className="mt-2">You can change your preferences at any time using the <button onClick={() => window.dispatchEvent(new CustomEvent("zo:manage-cookies"))} className="text-pine underline cursor-pointer">Manage cookies</button> link in the footer. Your choice is stored in this browser only and applies to this site only.</p>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Categories we use</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-stone-600">
+            <p>We group cookies into three categories. Essential cookies are always on. Analytics and marketing are opt-in.</p>
+            <h3 className="mb-2 mt-4 font-semibold text-stone-900">🟢 Essential (always on)</h3>
+            <p>Required for the website to function. Exempt from consent under Regulation 6(1)(a) of PECR.</p>
+            <h3 className="mb-2 mt-4 font-semibold text-stone-900">🟡 Analytics (opt-in)</h3>
+            <p>Anonymous, aggregated usage data via <a href="https://umami.is" className="text-pine underline" target="_blank" rel="noopener">Umami</a> — a privacy-friendly analytics tool that does not set cross-site tracking cookies and does not collect personal data.</p>
+            <h3 className="mb-2 mt-4 font-semibold text-stone-900">🔴 Marketing (opt-in, currently unused)</h3>
+            <p>We do not use advertising, remarketing, or cross-site tracking. This category is here in case we ever add such features, and will stay off until you opt in.</p>
           </CardContent>
         </Card>
 
