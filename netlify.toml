@@ -23,6 +23,11 @@
   status = 200
   to = "/.netlify/functions/sitemap"
 
+[[redirects]]
+  from = "/*"
+  status = 200
+  to = "/index.html"
+
 [[headers]]
   for = "/*"
   [headers.values]
