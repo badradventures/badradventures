@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, User, Trash2, Download, AlertCircle, Server, Globe, Clock, ShieldAlert, Children, FileText, Mail } from "lucide-react";
+import { Shield, User, Trash2, Download, AlertCircle, Server, Globe, Clock, ShieldAlert, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/site-shell";
@@ -285,7 +285,7 @@ export default function PrivacyPage() {
         <Card id="children" className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Children className="h-5 w-5 text-pine" /> Children's data
+              <User className="h-5 w-5 text-pine" /> Children's data
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-stone-600">
