@@ -23,7 +23,7 @@ import { clearStoredUser } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { useJsonLd } from "@/lib/seo";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/json-ld";
-import CookieConsentBanner from "@/components/CookieConsentBanner";
+import CookieConsentBanner from "@/components/cookie-consent-banner";
 
 export type Me = {
   id: string;

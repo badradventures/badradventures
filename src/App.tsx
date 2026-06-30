@@ -20,7 +20,6 @@ import TermsPage from "@/pages/terms";
 import RefundPage from "@/pages/refund";
 import { SiteShell } from "@/components/site-shell";
 import { Toaster } from "@/components/ui/sonner";
-import CookieConsentBanner from "@/components/cookie-consent-banner";
 
 export default function App() {
   return (
