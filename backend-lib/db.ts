@@ -855,6 +855,7 @@ export async function contactMessageInsert(input: {
   message: string;
   userId: string | null;
   consentedAt?: number;
+  policyVersion?: string;
 }): Promise<void> {
   const row = {
     name: input.name,
@@ -863,6 +864,7 @@ export async function contactMessageInsert(input: {
     message: input.message,
     user_id: input.userId,
     consented_at: new Date(input.consentedAt ?? Date.now()).toISOString(),
+    policy_version: input.policyVersion ?? "2026-06",
   };
   const { error } = await supabaseAdmin().from("contact_messages").insert(row);
   if (error) throw new Error(error.message);

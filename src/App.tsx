@@ -16,8 +16,11 @@ import CartPage from "@/pages/cart";
 import NotFoundPage from "@/pages/not-found";
 import PrivacyPage from "@/pages/privacy";
 import CookiesPage from "@/pages/cookies";
+import TermsPage from "@/pages/terms";
+import RefundPage from "@/pages/refund";
 import { SiteShell } from "@/components/site-shell";
 import { Toaster } from "@/components/ui/sonner";
+import CookieConsentBanner from "@/components/cookie-consent-banner";
 
 export default function App() {
   return (
@@ -41,6 +44,8 @@ export default function App() {
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/cookies" element={<CookiesPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/refund" element={<RefundPage />} />
               <Route path="/home" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>

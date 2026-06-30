@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { CONSENT_VERSION } from "@/lib/cookie-consent";
 
 import { usePageSeo as useSeo } from "@/lib/seo";
 export default function ContactPage() {
@@ -32,7 +33,11 @@ export default function ContactPage() {
     try {
       await api("/api/contact", {
         method: "POST",
-        body: JSON.stringify({ name, email, subject, message }),
+        body: JSON.stringify({
+          name, email, subject, message,
+          consentedAt: Date.now(),
+          policyVersion: CONSENT_VERSION,
+        }),
       });
       toast.success("Message sent. We'll be in touch within 24 hours.");
       setName("");

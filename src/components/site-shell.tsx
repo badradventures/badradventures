@@ -23,6 +23,7 @@ import { clearStoredUser } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { useJsonLd } from "@/lib/seo";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/json-ld";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 
 export type Me = {
   id: string;
@@ -412,6 +413,25 @@ export function SiteShell({ children }: { children: ReactNode }) {
                     Cookie Policy
                   </Link>
                 </li>
+                <li>
+                  <Link to="/terms" className="text-paper/80 hover:text-amber-200">
+                    Terms & Conditions
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/refund-policy" className="text-paper/80 hover:text-amber-200">
+                    Refund Policy
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => window.dispatchEvent(new CustomEvent("zo:manage-cookies"))}
+                    className="text-paper/80 hover:text-amber-200 cursor-pointer text-left"
+                  >
+                    Manage cookies
+                  </button>
+                </li>
               </ul>
             </div>
             <div>
@@ -438,6 +458,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
           </div>
         </footer>
       </div>
+      <CookieConsentBanner />
     </AuthContext.Provider>
   );
 }

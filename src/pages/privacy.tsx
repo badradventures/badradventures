@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, User, Trash2, Download, AlertCircle } from "lucide-react";
+import { Shield, User, Trash2, Download, AlertCircle, Server, Globe, Clock, ShieldAlert, Children, FileText, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/site-shell";
@@ -78,6 +78,10 @@ export default function PrivacyPage() {
           <a href="#data" className="rounded-xl border border-ink/10 p-4 text-center text-sm font-medium hover:bg-ink/5 transition">What We Collect</a>
           <a href="#rights" className="rounded-xl border border-ink/10 p-4 text-center text-sm font-medium hover:bg-ink/5 transition">Your Rights</a>
           <a href="#cookies" className="rounded-xl border border-ink/10 p-4 text-center text-sm font-medium hover:bg-ink/5 transition">Cookies</a>
+          <a href="#processors" className="rounded-xl border border-ink/10 p-4 text-center text-sm font-medium hover:bg-ink/5 transition">Data Processors</a>
+          <a href="#international" className="rounded-xl border border-ink/10 p-4 text-center text-sm font-medium hover:bg-ink/5 transition">International</a>
+          <a href="#breach" className="rounded-xl border border-ink/10 p-4 text-center text-sm font-medium hover:bg-ink/5 transition">Security</a>
+          <a href="#children" className="rounded-xl border border-ink/10 p-4 text-center text-sm font-medium hover:bg-ink/5 transition">Children</a>
         </div>
 
         {/* Controller info */}
@@ -203,6 +207,120 @@ export default function PrivacyPage() {
               <li><strong>No marketing or analytics cookies</strong> — we do not use any tracking or advertising cookies.</li>
             </ul>
             <p>For full details, see our <Link to="/cookies" className="text-pine underline">Cookie Policy</Link>.</p>
+          </CardContent>
+        </Card>
+
+        {/* Data Processors */}
+        <Card id="processors" className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-5 w-5 text-pine" /> Data processors
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-stone-600">
+            <p>We use the following data processors. Each has been vetted and operates under a data processing agreement compliant with Article 28 of UK GDPR:</p>
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-ink/10">
+                  <th className="pb-2 font-medium text-stone-900">Processor</th>
+                  <th className="pb-2 font-medium text-stone-900">Purpose</th>
+                  <th className="pb-2 font-medium text-stone-900">Data processed</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink/5">
+                <tr><td className="py-2">Supabase (US)</td><td className="py-2">Database & authentication</td><td className="py-2">Account data, bookings, contact messages</td></tr>
+                <tr><td className="py-2">Stripe (Ireland/US)</td><td className="py-2">Payment processing</td><td className="py-2">Payment amounts, customer email (no card details)</td></tr>
+                <tr><td className="py-2">Resend (US)</td><td className="py-2">Transactional email delivery</td><td className="py-2">Email addresses, message content</td></tr>
+                <tr><td className="py-2">Netlify (US)</td><td className="py-2">Web hosting & CDN</td><td className="py-2">IP addresses, request metadata (server logs)</td></tr>
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+
+        {/* International transfers */}
+        <Card id="international" className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-pine" /> International data transfers
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-stone-600">
+            <p>Your personal data may be transferred to and processed in countries outside the UK, including the <strong>United States</strong> and <strong>Ireland</strong>.</p>
+            <p>Where transfers occur, we ensure appropriate safeguards are in place:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>UK International Data Transfer Agreement (IDTA)</strong> — in place with Supabase, Stripe, Resend, and Netlify.</li>
+              <li><strong>Data Processing Agreements (Article 28)</strong> — signed with all processors.</li>
+              <li><strong>Stripe</strong> is certified under the UK-US Data Bridge, which the UK Government recognises as providing adequate protections.</li>
+            </ul>
+            <p>If you would like a copy of the relevant safeguards, contact us at jefferygo0o@gmail.com.</p>
+          </CardContent>
+        </Card>
+
+        {/* Breach procedure */}
+        <Card id="breach" className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-pine" /> Security & breach procedure
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-stone-600">
+            <p>We take the security of your data seriously:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>All connections are encrypted via TLS (HTTPS).</li>
+              <li>Passwords are hashed using bcrypt before storage.</li>
+              <li>API endpoints require authentication for personal data access.</li>
+              <li>Database access is restricted to authorised services only.</li>
+              <li>Server logs are retained for 30 days and then automatically deleted.</li>
+            </ul>
+            <p><strong>Breach notification procedure:</strong> In the unlikely event of a personal data breach, we will:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Notify the ICO within 72 hours of becoming aware (where required under Article 33).</li>
+              <li>Notify affected individuals without undue delay if the breach poses a high risk to their rights and freedoms.</li>
+              <li>Document all breaches — including facts, effects, and remedial action — as required by Article 33(5).</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Children */}
+        <Card id="children" className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Children className="h-5 w-5 text-pine" /> Children's data
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-stone-600">
+            <p>Our services are intended for individuals aged <strong>18 and over</strong>. Hikes may welcome participants as young as 11 when accompanied by a parent or guardian, but the person making the booking must be an adult.</p>
+            <p>We do not knowingly collect personal data from children under 18. If you believe a child has provided us with personal data without parental consent, please contact us immediately at jefferygo0o@gmail.com so we can investigate and delete the data.</p>
+          </CardContent>
+        </Card>
+
+        {/* No DPO */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-pine" /> Data Protection Officer
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-stone-600">
+            <p>We are a small business and are <strong>not required by law to appoint a Data Protection Officer (DPO)</strong>. However, all data protection matters are handled directly by the business owner, who is responsible for overseeing GDPR compliance.</p>
+            <p>For any data protection enquiries, contact: <a href="mailto:jefferygo0o@gmail.com" className="text-pine underline">jefferygo0o@gmail.com</a>.</p>
+          </CardContent>
+        </Card>
+
+        {/* Consent record-keeping */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-pine" /> Contact form consent records
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-stone-600">
+            <p>When you submit a message via our contact form, we record:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Consent timestamp:</strong> The exact date and time you consented to us storing your message.</li>
+              <li><strong>Policy version:</strong> Which version of this privacy notice applied at the time (currently 2026-06).</li>
+            </ul>
+            <p>This record is stored alongside your message and is never used for any purpose other than demonstrating lawful consent under Article 7(1) of UK GDPR. You can request a copy of this record at any time.</p>
           </CardContent>
         </Card>
 

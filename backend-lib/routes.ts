@@ -814,6 +814,7 @@ export function mountRoutes(app: Hono) {
     email: z.string().email(),
     subject: z.string().max(120).optional(),
     message: z.string().min(10).max(4000),
+    policyVersion: z.string().optional(),
   });
 
   app.post("/api/contact", async (c) => {
@@ -827,6 +828,7 @@ export function mountRoutes(app: Hono) {
         subject: body.subject ?? null,
         message: body.message,
         userId: session ? session.sub : null,
+        policyVersion: body.policyVersion ?? "2026-06",
       });
       await sendContactEmail(body);
       return c.json({ ok: true });
