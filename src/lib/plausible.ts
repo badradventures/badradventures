@@ -10,11 +10,11 @@ declare global {
   }
 }
 
-/** Loads Plausible analytics only after the user has accepted cookies.
- *  Re-checks when consent changes via the zo:consent-updated event.
- *  Plausible is cookie-free by default (no GDPR banner needed in EU),
- *  but we gate it behind consent as a matter of transparency. */
-export function usePlausible() {
+/** React component that loads Plausible analytics only after the user has
+ *  accepted cookies. Re-checks when consent changes via zo:consent-updated.
+ *  Plausible is cookie-free by default, but we gate it behind consent
+ *  as a matter of transparency. */
+export default function PlausibleTracker() {
   useEffect(() => {
     function checkConsentAndLoad() {
       const consent = getConsent();
@@ -37,4 +37,6 @@ export function usePlausible() {
     window.addEventListener("zo:consent-updated", checkConsentAndLoad);
     return () => window.removeEventListener("zo:consent-updated", checkConsentAndLoad);
   }, []);
+
+  return null;
 }

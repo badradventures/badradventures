@@ -24,7 +24,7 @@ import { useCart } from "@/lib/cart-context";
 import { useJsonLd } from "@/lib/seo";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/json-ld";
 import CookieConsentBanner from "@/components/cookie-consent-banner";
-import { PlausibleTracker } from "@/lib/plausible";
+import PlausibleTracker from "@/lib/plausible";
 
 export type Me = {
   id: string;
