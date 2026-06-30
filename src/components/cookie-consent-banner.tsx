@@ -1,16 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Cookie, X } from "lucide-react";
-import { setConsent, hasConsented } from "@/lib/cookie-consent";
+import { setConsent, clearConsent, getConsent } from "@/lib/cookie-consent";
 
 export default function CookieConsentBanner() {
-  const [dismissed, setDismissed] = useState(() => hasConsented());
+  const [visible, setVisible] = useState(() => getConsent() === null);
+
+  useEffect(() => {
+    function show() {
+      setVisible(true);
+    }
+    window.addEventListener("zo:manage-cookies", show);
+    return () => window.removeEventListener("zo:manage-cookies", show);
+  }, []);
 
   function handleAccept() {
     setConsent(true);
-    setDismissed(true);
+    setVisible(false);
+    window.dispatchEvent(new Event("zo:consent-updated"));
   }
 
-  if (dismissed) return null;
+  function handleReject() {
+    setConsent(false);
+    setVisible(false);
+    window.dispatchEvent(new Event("zo:consent-updated"));
+  }
+
+  if (!visible) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-ink/10 bg-paper shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
@@ -31,14 +46,21 @@ export default function CookieConsentBanner() {
           </a>
           <button
             type="button"
-            onClick={handleAccept}
-            className="whitespace-nowrap rounded-full bg-pine px-4 py-1.5 text-sm font-medium text-amber-200 shadow-sm transition hover:bg-pine-2"
+            onClick={handleReject}
+            className="whitespace-nowrap rounded-full border border-ink/15 px-4 py-1.5 text-sm font-medium text-ink-2 transition hover:border-pine hover:text-pine"
           >
-            Got it
+            Essential only
           </button>
           <button
             type="button"
             onClick={handleAccept}
+            className="whitespace-nowrap rounded-full bg-pine px-4 py-1.5 text-sm font-medium text-amber-200 shadow-sm transition hover:bg-pine-2"
+          >
+            Accept all
+          </button>
+          <button
+            type="button"
+            onClick={handleReject}
             className="flex h-8 w-8 items-center justify-center rounded-full text-ink-3 hover:bg-ink/5 hover:text-ink"
             aria-label="Dismiss"
           >

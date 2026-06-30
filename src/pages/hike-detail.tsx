@@ -58,6 +58,7 @@ export default function HikeDetailPage() {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
   const { addItem } = useCart();
   usePageSeo({
     path: `/hikes/${id}`,
@@ -92,6 +93,10 @@ export default function HikeDetailPage() {
       toast.error(`Only ${hike.spotsLeft} spots left.`);
       return;
     }
+    if (!waiverAccepted) {
+      toast.error("Please accept the waiver before booking.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await api<{ bookingId: string; checkoutUrl?: string; free: boolean }>(
@@ -103,6 +108,7 @@ export default function HikeDetailPage() {
             partySize,
             phone: phone || undefined,
             notes: notes || undefined,
+            waiverAccepted,
           }),
         },
       );
@@ -283,6 +289,29 @@ export default function HikeDetailPage() {
                     placeholder="Halaal meals, accessibility, anything we should know…"
                     className="mt-1"
                   />
+                </div>
+                <div className="rounded-lg border border-ink/10 bg-stone-50 p-4">
+                  <label className="flex items-start gap-3 text-sm text-stone-600">
+                    <input
+                      type="checkbox"
+                      checked={waiverAccepted}
+                      onChange={(e) => setWaiverAccepted(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span>
+                      I acknowledge that hiking and outdoor activities involve inherent risks.
+                      I confirm that I (and anyone in my party) am physically able to participate,
+                      and I accept the{" "}
+                      <a href="/terms" target="_blank" rel="noopener" className="text-pine underline">
+                        Terms & Conditions
+                      </a>{" "}
+                      and{" "}
+                      <a href="/refund-policy" target="_blank" rel="noopener" className="text-pine underline">
+                        Refund Policy
+                      </a>.
+                      Participants under 18 must be accompanied by a parent or legal guardian.
+                    </span>
+                  </label>
                 </div>
               </div>
               <Separator />
