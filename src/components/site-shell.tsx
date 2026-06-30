@@ -453,11 +453,14 @@ export function SiteShell({ children }: { children: ReactNode }) {
             </div>
             <div>
               <h4 className="font-mono text-xs font-semibold uppercase tracking-[0.22em] text-amber-300">
-                Get in touch
+                Company
               </h4>
               <ul className="mt-4 space-y-2 text-sm text-paper/80">
+                <li className="font-semibold">Badr Adventures UK Ltd</li>
+                <li className="text-xs">Company no. 15921546</li>
+                <li className="text-xs">106 Castlesteads Drive</li>
+                <li className="text-xs">Carlisle, CA2 7XD, UK</li>
                 <li>jefferygo0o@gmail.com</li>
-                <li>Lake District · Peak District · Snowdonia</li>
               </ul>
             </div>
           </div>
