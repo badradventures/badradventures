@@ -6,7 +6,9 @@ package-lock.json
 .env.local
 .env
 supabase/.temp/
-
-# Pre-built JS site
-# Local Netlify folder
+*.js
+!supabase/functions/**/*.ts
+!backend-lib/**/*.ts
+!netlify/functions/**/*.ts
+!scripts/**/*.js
 .netlify
