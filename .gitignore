@@ -6,9 +6,4 @@ package-lock.json
 .env.local
 .env
 supabase/.temp/
-*.js
-!supabase/functions/**/*.ts
-!backend-lib/**/*.ts
-!netlify/functions/**/*.ts
-!scripts/**/*.js
 .netlify
