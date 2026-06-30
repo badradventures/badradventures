@@ -67,6 +67,8 @@ function configureProduction(app: Hono) {
     const runtimeEnv = {
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || "",
       VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || "",
+      VITE_UMAMI_URL: process.env.VITE_UMAMI_URL || "",
+      VITE_UMAMI_WEBSITE_ID: process.env.VITE_UMAMI_WEBSITE_ID || "",
     };
     const injected = html.replace(
       "</head>",
