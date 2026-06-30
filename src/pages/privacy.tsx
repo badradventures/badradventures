@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/site-shell";
 import { api } from "@/lib/api";
 
+import { usePageSeo as useSeo } from "@/lib/seo";
 export default function PrivacyPage() {
+  useSeo({
+    path: '/privacy',
+    title: 'Privacy policy',
+    description: 'How Badr Adventures collects, uses, and protects your personal data. UK GDPR compliant.',
+  });
   const { user } = useAuth();
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);

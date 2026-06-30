@@ -25,6 +25,8 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/components/site-shell";
 import { toast } from "sonner";
 import { useCart } from "@/lib/cart-context";
+import { usePageSeo, useJsonLd } from "@/lib/seo";
+import { hikeJsonLd, breadcrumbJsonLd } from "@/lib/json-ld";
 
 type Hike = {
   id: string;
@@ -57,6 +59,11 @@ export default function HikeDetailPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { addItem } = useCart();
+  usePageSeo({
+    path: `/hikes/${id}`,
+    title: hike ? hike.title : "Hike",
+  });
+  useJsonLd("hike", hike ? hikeJsonLd(hike) : null);
 
   useEffect(() => {
     if (!id) return;

@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { supabase, resetSupabaseClient } from "@/lib/supabase";
 import { clearStoredUser } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
+import { useJsonLd } from "@/lib/seo";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/json-ld";
 
 export type Me = {
   id: string;
@@ -54,6 +56,11 @@ const NAV_LINKS = [
 ];
 
 export function SiteShell({ children }: { children: ReactNode }) {
+  // Site-wide schema (Organization, WebSite with SearchAction). Every
+  // page gets these without having to opt in; per-page items like
+  // breadcrumbs and Events live in their own components.
+  useJsonLd(organizationJsonLd());
+  useJsonLd(websiteJsonLd());
   const [user, setUser] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();

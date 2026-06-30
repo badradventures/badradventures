@@ -34,6 +34,7 @@ import { useAuth } from "@/components/site-shell";
 import { useCart } from "@/lib/cart-context";
 import { toast } from "sonner";
 
+import { usePageSeo as useSeo } from "@/lib/seo";
 type EquipmentType = "tent" | "bnb" | "gear";
 
 type Equipment = {
@@ -86,6 +87,11 @@ function nightsBetween(start: string, end: string): number {
 }
 
 export default function RentPage() {
+  useSeo({
+    path: '/rent',
+    title: 'Equipment hire',
+    description: 'Quality outdoor kit for hire across the UK -- tents, stoves, packs and more, delivered to your meetup point.',
+  });
   const { user } = useAuth();
   const [items, setItems] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);

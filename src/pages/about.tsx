@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { initReveal, initRevealStagger, initHeroScene } from "@/lib/animations";
 
+import { usePageSeo as useSeo } from "@/lib/seo";
 const principles = [
   {
     icon: Heart,
@@ -90,6 +91,11 @@ const milestones = [
 ];
 
 export default function AboutPage() {
+  useSeo({
+    path: '/about',
+    title: 'About us',
+    description: 'Field-experienced guides leading group hikes and wild camping trips across the UK national parks.',
+  });
   const heroRef = useRef<HTMLElement | null>(null);
   const principlesRef = useRef<HTMLElement | null>(null);
   const storyRef = useRef<HTMLElement | null>(null);

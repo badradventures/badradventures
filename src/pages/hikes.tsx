@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { usePageSeo as useSeo } from "@/lib/seo";
 
 type Hike = {
   id: string;
@@ -27,6 +28,10 @@ type Hike = {
 };
 
 export default function HikesPage() {
+  useSeo({
+    path: "/hikes",
+    title: "Find your next adventure",
+  });
   const [hikes, setHikes] = useState<Hike[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");

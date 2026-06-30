@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f2419"/>
+      <stop offset="55%" stop-color="#1a3a2a"/>
+      <stop offset="100%" stop-color="#2d5a3f"/>
+    </linearGradient>
+    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a6b4a"/>
+      <stop offset="100%" stop-color="#1f3a2a"/>
+    </linearGradient>
+    <linearGradient id="hill2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2a4f38"/>
+      <stop offset="100%" stop-color="#142a1f"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#sky)"/>
+
+  <!-- Sun -->
+  <circle cx="900" cy="220" r="80" fill="#e8c47a" opacity="0.85"/>
+  <circle cx="900" cy="220" r="120" fill="#e8c47a" opacity="0.15"/>
+
+  <!-- Mountains (back) -->
+  <path d="M 0 460 L 180 280 L 320 380 L 460 240 L 620 360 L 780 220 L 940 340 L 1100 260 L 1200 320 L 1200 630 L 0 630 Z" fill="url(#hill2)"/>
+
+  <!-- Mountains (front) -->
+  <path d="M 0 540 L 140 380 L 280 460 L 440 320 L 600 440 L 760 340 L 920 420 L 1080 360 L 1200 400 L 1200 630 L 0 630 Z" fill="url(#hill)"/>
+
+  <!-- Title block -->
+  <g font-family="Georgia, serif">
+    <text x="80" y="120" font-size="22" font-weight="600" fill="#d4a657" letter-spacing="6">BADR ADVENTURES</text>
+    <text x="80" y="200" font-size="72" font-weight="700" fill="#f5f1e8">Guided hikes</text>
+    <text x="80" y="280" font-size="72" font-weight="700" fill="#f5f1e8">across the UK.</text>
+    <text x="80" y="340" font-size="24" fill="#a8a094" font-style="italic">Lake District · Peak District · Snowdonia</text>
+  </g>
+</svg>

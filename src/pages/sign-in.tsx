@@ -10,9 +10,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useAuth } from "@/components/site-shell";
 import { toast } from "sonner";
 
+import { usePageSeo as useSeo } from "@/lib/seo";
 type Me = { id: string; name: string; email: string; isAdmin: boolean };
 
 export default function SignInPage() {
+  useSeo({
+    path: '/sign-in',
+    title: 'Sign in',
+    description: 'Sign in to your Badr Adventures account to book hikes, view itineraries, and manage your trips.',
+    noindex: true,
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);

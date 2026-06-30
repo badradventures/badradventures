@@ -8,7 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
+import { usePageSeo as useSeo } from "@/lib/seo";
 export default function ContactPage() {
+  useSeo({
+    path: '/contact',
+    title: 'Contact us',
+    description: 'Get in touch with Badr Adventures. We answer every message within 24 hours.',
+  });
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");

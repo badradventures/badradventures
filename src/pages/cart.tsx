@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { usePageSeo } from "@/lib/seo";
 
 const TYPE_ICONS: Record<string, typeof Tent> = {
   hike: Tent,
@@ -30,6 +31,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function CartPage() {
+  usePageSeo({ path: '/cart', title: 'Your cart', description: 'Review your hikes and rental gear before checkout.', noindex: true });
   const { user } = useAuth();
   const { items, removeItem, updateQuantity, clearCart, totalPence, itemCount } = useCart();
   const navigate = useNavigate();

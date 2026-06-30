@@ -1,6 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { usePageSeo as useSeo } from "@/lib/seo";
 export default function CookiesPage() {
+  useSeo({
+    path: '/cookies',
+    title: 'Cookie policy',
+    description: 'What cookies Badr Adventures uses and why. UK GDPR and PECR compliant.',
+  });
   return (
     <div>
       <section className="bg-gradient-to-br from-emerald-900 to-stone-900 text-white">

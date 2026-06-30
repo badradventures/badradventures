@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /cart
+Disallow: /bookings
+Disallow: /account
+
+Sitemap: https://badradventures.co.uk/sitemap.xml

@@ -5,8 +5,13 @@ import FieldManifesto from "@/components/field-manifesto";
 import Voices from "@/components/voices";
 import DepartureCta from "@/components/departure-cta";
 import { Badge } from "@/components/ui/badge";
+import { usePageSeo as useSeo } from "@/lib/seo";
 
 export default function HomePage() {
+  useSeo({
+    path: "/",
+    title: "Home",
+  });
   return (
     <div className="bg-paper text-ink overflow-hidden">
       <Hero />
