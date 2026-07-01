@@ -10,7 +10,20 @@ import { usePageSeo as useSeo } from "@/lib/seo";
 export default function HomePage() {
   useSeo({
     path: "/",
-    title: "Home",
+    title: "Muslim Hiking UK | Guided Hikes, Camping & Adventures | Badr Adventures",
+    description:
+      "The UK's #1 Muslim hiking group. Guided hikes, wild camping and family adventures in the Lake District, Peak District, Snowdonia and Scottish Highlands — with prayer breaks, halal food and women-friendly groups.",
+    keywords: [
+      "Muslim hiking",
+      "Muslim hiking UK",
+      "Muslim hikers",
+      "halal hiking",
+      "Muslim outdoor adventures",
+      "Islamic hiking group",
+      "Muslim hiking club UK",
+      "women's Muslim hiking",
+      "family Muslim hiking",
+    ],
   });
   return (
     <div className="bg-paper text-ink overflow-hidden">

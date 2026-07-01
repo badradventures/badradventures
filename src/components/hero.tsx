@@ -87,7 +87,7 @@ export default function Hero() {
         <div className="max-w-3xl" data-reveal data-reveal-delay="0">
           <span className="inline-flex items-center gap-2 rounded-full border border-paper/30 bg-paper/5 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.28em] text-paper/80 backdrop-blur">
             <Sparkles className="h-3 w-3 text-[var(--ochre)]" />
-            Bringing green to your deen
+            The UK's #1 Muslim hiking community
           </span>
         </div>
 
@@ -96,8 +96,8 @@ export default function Hero() {
           data-reveal-delay="80"
           className="mt-8 max-w-4xl font-serif text-5xl font-semibold leading-[0.95] tracking-tight text-paper sm:text-7xl lg:text-[88px]"
         >
-          Leave the creature comforts at home and{" "}
-          <span className="italic text-[var(--ochre)]">embrace</span> the challenge.
+          Muslim hiking across the UK —{" "}
+          <span className="italic text-[var(--ochre)]">guided, halal, prayer-friendly.</span>
         </h1>
 
         <p
@@ -105,9 +105,11 @@ export default function Hero() {
           data-reveal-delay="200"
           className="mt-8 max-w-2xl text-lg leading-relaxed text-paper/80"
         >
-          Bespoke camping, guided hikes and kayaking across the UK — for people who've never
-          picked up a compass, and people who already know every footpath. Real adventures,
-          real community, real rest.
+          Badr Adventures is the UK's leading Muslim hiking group. We run small-group
+          guided hikes, wild camping weekends and family adventures across the Lake
+          District, Peak District, Snowdonia and the Scottish Highlands — with
+          prayer breaks built in, halal food, women-friendly groups, and a pace
+          that respects family life.
         </p>
 
         <div

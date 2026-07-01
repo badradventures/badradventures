@@ -21,6 +21,9 @@ const SITE_URL = "https://badradventures.co.uk";
 // own lastmod frequencies (hikes change weekly as dates get added).
 const STATIC_ROUTES: Array<{ path: string; changefreq: string; priority: number }> = [
   { path: "/", changefreq: "weekly", priority: 1.0 },
+  { path: "/muslim-hiking", changefreq: "weekly", priority: 1.0 },
+  { path: "/muslim-hiking/uk", changefreq: "weekly", priority: 0.9 },
+  { path: "/blog", changefreq: "weekly", priority: 0.9 },
   { path: "/hikes", changefreq: "weekly", priority: 0.9 },
   { path: "/rent", changefreq: "weekly", priority: 0.9 },
   { path: "/about", changefreq: "monthly", priority: 0.6 },
@@ -29,6 +32,24 @@ const STATIC_ROUTES: Array<{ path: string; changefreq: string; priority: number 
   { path: "/cookies", changefreq: "yearly", priority: 0.2 },
   { path: "/terms", changefreq: "yearly", priority: 0.2 },
   { path: "/refund", changefreq: "yearly", priority: 0.2 },
+];
+
+// ============================================================================
+
+interface BlogPostEntry {
+  slug: string;
+  lastmod: string; // YYYY-MM-DD
+  changefreq?: "daily" | "weekly" | "monthly";
+  priority?: number;
+}
+
+const BLOG_POSTS: BlogPostEntry[] = [
+  {
+    slug: "muslim-hiking-uk-complete-guide",
+    lastmod: "2026-07-01",
+    changefreq: "monthly",
+    priority: 0.9,
+  },
 ];
 
 function today(): string {
@@ -97,6 +118,10 @@ app.get("/sitemap.xml", (c) => {
     `  </sitemap>\n` +
     `  <sitemap>\n` +
     `    <loc>${SITE_URL}/sitemap-equipment.xml</loc>\n` +
+    `    <lastmod>${last}</lastmod>\n` +
+    `  </sitemap>\n` +
+    `  <sitemap>\n` +
+    `    <loc>${SITE_URL}/sitemap-blog.xml</loc>\n` +
     `    <lastmod>${last}</lastmod>\n` +
     `  </sitemap>\n` +
     `</sitemapindex>\n`;
@@ -182,6 +207,25 @@ app.get("/sitemap-equipment.xml", async (c) => {
   return new Response(buildUrlset(entries), { status: 200, headers: COMMON_HEADERS });
 });
 
+app.get("/sitemap-blog.xml", (c) => {
+  const entries = BLOG_POSTS.map((p) =>
+    urlEntry(`${SITE_URL}/blog/${p.slug}`, {
+      lastmod: p.lastmod,
+      changefreq: p.changefreq ?? "monthly",
+      priority: p.priority ?? 0.7,
+    }),
+  );
+  // Always include the blog index as the first entry.
+  entries.unshift(
+    urlEntry(`${SITE_URL}/blog`, {
+      lastmod: today(),
+      changefreq: "weekly",
+      priority: 0.9,
+    }),
+  );
+  return new Response(buildUrlset(entries), { status: 200, headers: COMMON_HEADERS });
+});
+
 app.get("/robots.txt", (c) => {
   const text = [
     "User-agent: *",
@@ -240,3 +284,6 @@ export default async (event: Request | NetlifyEventV1): Promise<Response> => {
   const req = event instanceof Request ? event : toRequestFromV1Event(event);
   return app.fetch(req);
 };
+
+// ============================================================================
+// Blog posts. Add new posts here as you ship them. Keep newest first.

@@ -5,6 +5,10 @@ import HomePage from "@/pages/home";
 import HikesPage from "@/pages/hikes";
 import HikeDetailPage from "@/pages/hike-detail";
 import RentPage from "@/pages/rent";
+import MuslimHikingPage from "@/pages/muslim-hiking";
+import MuslimHikingUkPage from "@/pages/muslim-hiking-uk";
+import BlogIndexPage from "@/pages/blog-index";
+import BlogPostPage from "@/pages/blog-post";
 import AboutPage from "@/pages/about";
 import ContactPage from "@/pages/contact";
 import SignInPage from "@/pages/sign-in";
@@ -29,6 +33,10 @@ export default function App() {
           <SiteShell>
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/muslim-hiking" element={<MuslimHikingPage />} />
+              <Route path="/muslim-hiking/uk" element={<MuslimHikingUkPage />} />
+              <Route path="/blog" element={<BlogIndexPage />} />
+              <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/hikes" element={<HikesPage />} />
               <Route path="/hikes/:id" element={<HikeDetailPage />} />
               <Route path="/rent" element={<RentPage />} />

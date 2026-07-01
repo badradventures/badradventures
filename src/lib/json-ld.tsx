@@ -226,3 +226,49 @@ export function faqJsonLd(
     })),
   };
 }
+export function articleJsonLd(options: {
+  headline: string;
+  description: string;
+  author: string;
+  publisher: string;
+  datePublished: string;
+  dateModified: string;
+  image: string;
+  mainEntityOfPage: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: options.headline,
+    description: options.description,
+    author: { "@type": "Person", name: options.author },
+    publisher: { "@type": "Organization", name: options.publisher },
+    datePublished: options.datePublished,
+    dateModified: options.dateModified,
+    image: options.image.startsWith("http") ? options.image : `${SITE_URL}${options.image}`,
+    mainEntityOfPage: options.mainEntityOfPage,
+  };
+}
+export function blogPostingJsonLd(options: {
+  headline: string;
+  description: string;
+  author: string;
+  publisher: string;
+  datePublished: string;
+  dateModified: string;
+  image: string;
+  mainEntityOfPage: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: options.headline,
+    description: options.description,
+    author: { "@type": "Person", name: options.author },
+    publisher: { "@type": "Organization", name: options.publisher },
+    datePublished: options.datePublished,
+    dateModified: options.dateModified,
+    image: options.image.startsWith("http") ? options.image : `${SITE_URL}${options.image}`,
+    mainEntityOfPage: options.mainEntityOfPage,
+  };
+}

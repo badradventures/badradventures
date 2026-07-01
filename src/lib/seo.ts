@@ -27,6 +27,8 @@ export type PageSeo = {
   /** Optional published/modified ISO date for articles. */
   publishedTime?: string;
   modifiedTime?: string;
+  /** Optional list of keywords. Renders as <meta name="keywords">. */
+  keywords?: string[];
 };
 
 const DEFAULT_OG_IMAGE = "/og-default.png";
@@ -94,6 +96,11 @@ export function usePageSeo(seo: PageSeo): void {
 
     // Core meta.
     setMeta("description", description);
+    if (seo.keywords) {
+      setMeta("keywords", seo.keywords.join(", "));
+    } else {
+      removeMeta("keywords");
+    }
 
     // Canonical.
     setLink("canonical", url);
@@ -147,6 +154,7 @@ export function usePageSeo(seo: PageSeo): void {
     seo.ogType,
     seo.publishedTime,
     seo.modifiedTime,
+    seo.keywords,
   ]);
 }
 
