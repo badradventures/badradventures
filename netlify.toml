@@ -37,6 +37,12 @@
 
 [[redirects]]
   force = true
+  from = "/sitemap-blog.xml"
+  status = 200
+  to = "/.netlify/functions/sitemap"
+
+[[redirects]]
+  force = true
   from = "/robots.txt"
   status = 200
   to = "/.netlify/functions/sitemap"
