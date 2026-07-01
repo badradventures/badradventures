@@ -179,6 +179,17 @@ export default function AboutPage() {
             proper meal at the end of the day.
           </p>
 
+          <p
+            data-reveal
+            data-reveal-delay="320"
+            className="mt-5 max-w-2xl text-base leading-relaxed text-paper/65"
+          >
+            Bad Radventures is the UK's original Muslim hiking community — a Muslim hiking
+            club running prayer-friendly, halal, mixed-ability hikes, wild camping weekends,
+            and kayaking trips for Muslim hikers and Muslim women across England, Scotland,
+            and Wales. Eight years, 500+ hikers, one ridge at a time.
+          </p>
+
           <div data-reveal data-reveal-delay="400" className="mt-10 flex flex-wrap items-center gap-4 text-paper/70">
             <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.22em]">
               <Compass className="h-3.5 w-3.5 text-ochre" /> 54.4609° N · −3.0886° W

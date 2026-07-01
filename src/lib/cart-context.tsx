@@ -102,6 +102,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 export function useCart() {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart must be used within CartProvider");
+  if (!ctx) {
+    if (typeof window === "undefined") {
+      // SSR stub — never used in the rendered HTML, but some pages
+      // call useCart() at the top of the component tree.
+      return {
+        items: [],
+        addItem: () => {},
+        removeItem: () => {},
+        updateQuantity: () => {},
+        updateItem: () => {},
+        clearCart: () => {},
+        totalPence: 0,
+        itemCount: 0,
+      } satisfies CartContextType;
+    }
+    throw new Error("useCart must be used within CartProvider");
+  }
   return ctx;
 }

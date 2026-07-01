@@ -7,6 +7,8 @@ import HikeDetailPage from "@/pages/hike-detail";
 import RentPage from "@/pages/rent";
 import MuslimHikingPage from "@/pages/muslim-hiking";
 import MuslimHikingUkPage from "@/pages/muslim-hiking-uk";
+import MuslimHikingBeginnersPage from "@/pages/muslim-hiking-beginners";
+import MuslimHikingWomenPage from "@/pages/muslim-hiking-women";
 import BlogIndexPage from "@/pages/blog-index";
 import BlogPostPage from "@/pages/blog-post";
 import AboutPage from "@/pages/about";
@@ -35,6 +37,8 @@ export default function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/muslim-hiking" element={<MuslimHikingPage />} />
               <Route path="/muslim-hiking/uk" element={<MuslimHikingUkPage />} />
+              <Route path="/muslim-hiking/beginners" element={<MuslimHikingBeginnersPage />} />
+              <Route path="/muslim-hiking/women" element={<MuslimHikingWomenPage />} />
               <Route path="/blog" element={<BlogIndexPage />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/hikes" element={<HikesPage />} />

@@ -13,6 +13,8 @@ import { SITE_NAME, SITE_URL } from "./seo";
 
 const ORG_NAME = "Badr Adventures UK Ltd";
 const COMPANY_NUMBER = "15921546";
+export const AUTHOR_NAME = "Saif Mahmood";
+export const AUTHOR_ID = `${SITE_URL}#author-saif`;
 const REGISTERED_OFFICE = {
   streetAddress: "106 Castlesteads Drive",
   addressLocality: "Carlisle",
@@ -212,6 +214,19 @@ export function breadcrumbJsonLd(
   };
 }
 
+/** Speakable schema — points voice assistants and AI search at the
+ *  one short paragraph that best answers "What is Muslim hiking?" */
+export function speakableJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SpeakableSpecification",
+    xpath: [
+      "/html/head/title",
+      "/html/body//*[@data-speakable='true']",
+    ],
+  };
+}
+
 /** FAQ schema for the about / FAQ page. */
 export function faqJsonLd(
   qa: Array<{ question: string; answer: string }>,
@@ -224,6 +239,25 @@ export function faqJsonLd(
       name: question,
       acceptedAnswer: { "@type": "Answer", text: answer },
     })),
+  };
+}
+/** A person schema for the founder/lead guide. Linked from articles
+ *  to establish E-E-A-T authorship in Google and AI search. */
+export function authorJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "@id": AUTHOR_ID,
+    name: AUTHOR_NAME,
+    jobTitle: "Founder & Lead Mountain Leader",
+    worksFor: { "@id": ORG_ID },
+    url: `${SITE_URL}/about`,
+    knowsAbout: [
+      "Mountain Leadership",
+      "Wild camping",
+      "Islamic outdoor ethics",
+      "Hillwalking safety",
+    ],
   };
 }
 export function articleJsonLd(options: {
@@ -241,8 +275,8 @@ export function articleJsonLd(options: {
     "@type": "BlogPosting",
     headline: options.headline,
     description: options.description,
-    author: { "@type": "Person", name: options.author },
-    publisher: { "@type": "Organization", name: options.publisher },
+    author: { "@type": "Person", name: options.author, "@id": options.author === AUTHOR_NAME ? AUTHOR_ID : undefined },
+    publisher: { "@id": ORG_ID },
     datePublished: options.datePublished,
     dateModified: options.dateModified,
     image: options.image.startsWith("http") ? options.image : `${SITE_URL}${options.image}`,

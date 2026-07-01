@@ -68,11 +68,12 @@ export default function HikesPage() {
         <div>
           <Badge className="bg-emerald-100 text-emerald-800">All hikes</Badge>
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-stone-900 sm:text-4xl">
-            Find your next adventure
+            Upcoming Muslim hiking trips
           </h1>
           <p className="mt-2 max-w-2xl text-stone-600">
             Filter by difficulty, search by region, or just scroll the full calendar. Every
-            hike below has live availability and a small-group guarantee.
+            Muslim hiking trip below is small-group, fully guided, halal-fed, and plotted
+            with prayer breaks. Beginners welcome on every route.
           </p>
         </div>
       </div>

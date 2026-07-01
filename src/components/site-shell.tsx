@@ -47,7 +47,21 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within SiteShell");
+  // During prerender (SSR) no provider exists, so return a safe stub.
+  // The prerender script wraps pages in StaticShell which provides a
+  // real provider; this fallback only kicks in for SSR renders.
+  if (!ctx) {
+    if (typeof window === "undefined") {
+      return {
+        user: null,
+        loading: false,
+        refresh: async () => null,
+        signOut: async () => {},
+        setUser: () => {},
+      } satisfies AuthContextValue;
+    }
+    throw new Error("useAuth must be used within SiteShell");
+  }
   return ctx;
 }
 

@@ -159,11 +159,11 @@ export default function RentPage() {
             Rent gear · no commitment
           </Badge>
           <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
-            Tents, B&Bs and hiking gear —{" "}
+            Hiking &amp; camping kit for Muslim hikers —{" "}
             <span className="text-amber-300">rented the easy way.</span>
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-stone-200">
-            Borrow what you need for your next weekend with us, by the night. Quality
+            Borrow what you need for your next Muslim hiking trip with us, by the night. Quality
             kit, real availability, free pitching on guided weekends.
           </p>
           <div className="mt-8 grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
