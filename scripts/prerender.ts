@@ -157,19 +157,13 @@ function injectIntoTemplate(
   head: Extracted,
   bodyHtml: string,
 ): string {
-  // Drop the original SPA body and the module script (we're shipping a
-  // real, hydrated DOM now; the JS still loads and takes over for nav).
-  // Also drop the template's default <title> and its placeholder meta
-  // tags — our prerender pipeline replaces them with per-route values.
+  // Clear the SPA body for prerendered content. Keep the module script
+  // tag so React hydrates on the client and buttons/forms/routing work.
   const rootCleared = template
     .replace(/<title[^>]*>[\s\S]*?<\/title>/i, "")
     .replace(
       /<div\s+id="root"[^>]*>[\s\S]*?<\/div>/i,
       '<div id="root">__PRERENDER_BODY__</div>',
-    )
-    .replace(
-      /<script\s+type="module"[^>]*src="\/assets\/index-[^"]+\.js"[^>]*><\/script>/i,
-      "",
     );
 
   // Build a new <head> insertion. Place the title first (browsers care

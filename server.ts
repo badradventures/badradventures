@@ -48,6 +48,19 @@ const port = process.env.PORT
 
 export default { fetch: app.fetch, port, idleTimeout: 255 };
 
+function injectRuntimeEnv(html: string): string {
+  const runtimeEnv = {
+    VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || "",
+    VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || "",
+    VITE_UMAMI_URL: process.env.VITE_UMAMI_URL || "",
+    VITE_UMAMI_WEBSITE_ID: process.env.VITE_UMAMI_WEBSITE_ID || "",
+  };
+  return html.replace(
+    "</head>",
+    `<script>window.__ENV__ = ${JSON.stringify(runtimeEnv)}</script></head>`,
+  );
+}
+
 function configureProduction(app: Hono) {
   app.use("/assets/*", serveStatic({ root: "./dist" }));
   app.get("/favicon.ico", (c) => c.redirect("/favicon.svg", 302));
@@ -55,25 +68,34 @@ function configureProduction(app: Hono) {
     if (c.req.method !== "GET") return next();
     const path = c.req.path;
     if (path.startsWith("/api/") || path.startsWith("/assets/")) return next();
-    const file = Bun.file(`./dist${path}`);
-    if (await file.exists()) {
-      const stat = await file.stat();
-      if (stat && !stat.isDirectory()) {
-        return new Response(file);
+
+    // Try exact file first (e.g. /images/logo.png, /robots.txt)
+    let file = Bun.file(`./dist${path}`);
+    let stat = await file.stat();
+    if (stat && !stat.isDirectory()) {
+      return new Response(file);
+    }
+
+    // If it's a prerendered route directory (e.g. /hikes → dist/hikes/index.html)
+    if (stat && stat.isDirectory()) {
+      const idx = Bun.file(`./dist${path}/index.html`);
+      const idxStat = await idx.stat();
+      if (idxStat && !idxStat.isDirectory()) {
+        file = idx;
+        stat = idxStat;
       }
     }
-    // Inject runtime env vars into the HTML so the client can read them
+
+    if (stat && !stat.isDirectory()) {
+      // Serve the prerendered page (or a direct file hit), injecting runtime env
+      const html = await file.text();
+      const injected = injectRuntimeEnv(html);
+      return c.html(injected);
+    }
+
+    // SPA fallback for client-side routing (unknown routes/non-prerendered paths)
     const html = await Bun.file("./dist/index.html").text();
-    const runtimeEnv = {
-      VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || "",
-      VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || "",
-      VITE_UMAMI_URL: process.env.VITE_UMAMI_URL || "",
-      VITE_UMAMI_WEBSITE_ID: process.env.VITE_UMAMI_WEBSITE_ID || "",
-    };
-    const injected = html.replace(
-      "</head>",
-      `<script>window.__ENV__ = ${JSON.stringify(runtimeEnv)}</script></head>`,
-    );
+    const injected = injectRuntimeEnv(html);
     return c.html(injected);
   });
 }
