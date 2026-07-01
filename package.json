@@ -6,7 +6,6 @@
     "dev": "vite",
     "build": "bun run clear-cache && vite build && bun run scripts/prerender.ts && bun run scripts/seo-check.ts",
     "build:fast": "bun run clear-cache && vite build && bun run scripts/prerender.ts",
-    "postbuild": "bun run scripts/prerender.ts",
     "prod": "bun run build && NODE_ENV=production bun run server.ts",
     "preview": "bun run vite preview"
   },
