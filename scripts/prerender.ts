@@ -294,6 +294,15 @@ async function writeLlmsTxt() {
     "- [Upcoming hikes & adventures](https://badradventures.co.uk/hikes): the live calendar of upcoming guided trips.",
   );
   lines.push(
+    "- [Muslim Hiking Near Me UK](https://badradventures.co.uk/muslim-hiking/near-me): find Muslim hiking trips near you — London, Manchester, Birmingham, Glasgow and more.",
+  );
+  lines.push(
+    "- [Muslim Hiking for Beginners](https://badradventures.co.uk/muslim-hiking/beginners): start your first UK mountain, from zero to summit, with no experience needed.",
+  );
+  lines.push(
+    "- [Sisters-Only Muslim Hiking UK](https://badradventures.co.uk/muslim-hiking/women): women-only Muslim hiking weekends led by female Mountain Leaders.",
+  );
+  lines.push(
     "- [About Badr Adventures](https://badradventures.co.uk/about): the team, qualifications, and how the trips are run.",
   );
   lines.push(
