@@ -11,6 +11,9 @@ import HikeDetailPage from "@/pages/hike-detail";
 import RentPage from "@/pages/rent";
 import MuslimHikingPage from "@/pages/muslim-hiking";
 import MuslimHikingUkPage from "@/pages/muslim-hiking-uk";
+import MuslimHikingBeginnersPage from "@/pages/muslim-hiking-beginners";
+import MuslimHikingWomenPage from "@/pages/muslim-hiking-women";
+import MuslimHikingNearMePage from "@/pages/muslim-hiking-near-me";
 import BlogIndexPage from "@/pages/blog-index";
 import BlogPostPage from "@/pages/blog-post";
 import AboutPage from "@/pages/about";
@@ -51,6 +54,10 @@ const MUSLIM_HIKING_UK_FAQS = [
   { q: "Are there sisters-only Muslim hiking groups in the UK?", a: "Yes. Most active Muslim hiking groups run a regular sisters-only programme. Badr Adventures runs two sisters-only weekends a month in the Lake District and Peak District, led by a qualified female Mountain Leader." },
   { q: "Can I bring my kids on a Muslim hiking trip?", a: "Yes. Most groups run family-friendly routes for kids aged 5 and up. Short distances, shaded paths, regular prayer stops, and a café at the end. Badr Adventures runs dedicated family weekends four times a year." },
   { q: "What's the difference between Muslim hiking and a regular hiking group?", a: "Three things: prayer breaks are planned into the route, food is halal, and the group is built around modest kit and women-friendly options. The mountains are exactly the same." },
+];
+
+const MUSLIM_HIKING_NEAR_ME_FAQS = [
+  { q: "Where can I go Muslim hiking near me?", a: "Most major UK cities are within two hours of at least one Muslim hiking group. London, Manchester, Birmingham, Leeds, Bradford, Leicester, Glasgow, Edinburgh, Cardiff and Bristol all have active groups. Badr Adventures is based in Cumbria and runs nationwide weekends." },
 ];
 
 export type RouteConfig = {
@@ -150,6 +157,90 @@ export const ROUTES: RouteConfig[] = [
         { name: "UK", path: "/muslim-hiking/uk" },
       ]),
       faqJsonLd(MUSLIM_HIKING_UK_FAQS),
+    ],
+  },
+  {
+    path: "/muslim-hiking/beginners",
+    Page: MuslimHikingBeginnersPage,
+    seo: {
+      title: "Muslim Hiking for Beginners UK | First Mountain Guide | Badr Adventures",
+      description:
+        "New to Muslim hiking? Start your first UK mountain with Badr Adventures. Beginner-friendly guided hikes, prayer breaks, halal food, women-friendly groups. Lake District, Peak District & Snowdonia. From £35/day.",
+      keywords: [
+        "Muslim hiking beginners",
+        "beginner Muslim hiking UK",
+        "first Muslim hike",
+        "easy Muslim hiking UK",
+        "Muslim hiking starter",
+        "new to Muslim hiking",
+        "Muslim hiking first mountain",
+      ],
+      ogType: "website",
+    },
+    jsonLd: [
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Muslim Hiking", path: "/muslim-hiking" },
+        { name: "For Beginners", path: "/muslim-hiking/beginners" },
+      ]),
+    ],
+  },
+  {
+    path: "/muslim-hiking/women",
+    Page: MuslimHikingWomenPage,
+    seo: {
+      title: "Sisters-Only Muslim Hiking UK | Women's Guided Hikes | Badr Adventures",
+      description:
+        "Sisters-only Muslim hiking weekends across the UK. Female Mountain Leaders, sisters-only prayer space, halal food, modest by default. Lake District, Peak District, Snowdonia. Beginners welcome.",
+      keywords: [
+        "sisters only Muslim hiking",
+        "women Muslim hiking UK",
+        "Muslim women hiking group",
+        "female Muslim hiking UK",
+        "hijab hiking UK",
+        "sisters hiking weekend",
+        "women only hiking Muslim",
+      ],
+      ogType: "website",
+    },
+    jsonLd: [
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Muslim Hiking", path: "/muslim-hiking" },
+        { name: "For Women", path: "/muslim-hiking/women" },
+      ]),
+    ],
+  },
+  {
+    path: "/muslim-hiking/near-me",
+    Page: MuslimHikingNearMePage,
+    seo: {
+      title: "Muslim Hiking Near Me UK | Find Guided Muslim Hikes in Your City | Badr Adventures",
+      description:
+        "Find Muslim hiking trips near you across the UK — London, Manchester, Birmingham, Glasgow, Leeds, Bristol, Cardiff, Nottingham and more. Guided hikes with prayer breaks, halal food, women-friendly groups. Beginners welcome.",
+      keywords: [
+        "Muslim hiking near me",
+        "Muslim hiking near London",
+        "Muslim hiking near Manchester",
+        "Muslim hiking near Birmingham",
+        "Muslim hiking Glasgow",
+        "Muslim hiking Leeds",
+        "Muslim hiking Bristol",
+        "Muslim hiking Nottingham",
+        "Muslim hiking Cardiff",
+        "sisters hiking near me",
+        "guided Muslim hikes near me",
+        "Muslim hiking weekend near me",
+      ],
+      ogType: "website",
+    },
+    jsonLd: [
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Muslim Hiking", path: "/muslim-hiking" },
+        { name: "Near Me", path: "/muslim-hiking/near-me" },
+      ]),
+      faqJsonLd(MUSLIM_HIKING_NEAR_ME_FAQS),
     ],
   },
   {
