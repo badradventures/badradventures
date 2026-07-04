@@ -39,17 +39,24 @@ function buildBodyHtml(route: (typeof ROUTES)[number]): string {
     keywords: route.seo.keywords,
   };
 
-  // Head bits render inside a hidden <div> so they appear in the SSR
-  // output. extractHeadTags() then lifts them into the <head>.
-  const headComponents = React.createElement(
-    "div",
-    { "data-prerender-head": "true", style: { display: "none" } },
+  // React 19 hoists <title> and <meta> out of the wrapping <div>, but
+  // leaves <link> and <script> inside. We render the head bits as a
+  // list of top-level elements inside a hidden wrapper, then strip
+  // every head-worthy tag from the body before injecting into <head>.
+  // This avoids the "non-greedy <div>" problem where the strip regex
+  // used to stop at the first </div> and leave <link>/<script> behind.
+  const headBits: ReactNode[] = [
     React.createElement(MetaTags, { key: "meta", seo: seoProps }),
     ...(route.jsonLd ?? []).map((data, i) =>
       React.createElement(JsonLd, { key: `ld-${i}`, data }),
     ),
     React.createElement(JsonLd, { key: "org", data: organizationJsonLd() }),
     React.createElement(JsonLd, { key: "site", data: websiteJsonLd() }),
+  ];
+  const headComponents = React.createElement(
+    "div",
+    { "data-prerender-head": "true", style: { display: "none" } },
+    headBits,
   );
 
   const pageBody = React.createElement(
@@ -194,9 +201,17 @@ function outputPathFor(routePath: string): string {
 async function writeRoute(template: string, route: (typeof ROUTES)[number]) {
   const bodyHtml = buildBodyHtml(route);
   const head = extractHeadTags(bodyHtml);
-  // Strip the hidden head wrapper for cleanliness in the served HTML.
-  const visibleBody = bodyHtml.replace(
-    /<div\s+data-prerender-head="true"[^>]*>[\s\S]*?<\/div>/i,
+  // Strip EVERY head-worthy tag from the body before injection. React 19
+  // hoists <title>/<meta> out of the wrapping <div> but leaves <link>
+  // and <script type="application/ld+json"> nested inside, so the old
+  // "non-greedy <div>" strip left duplicates in the body. Stripping all
+  // head tags up front is robust and keeps the served HTML clean.
+  const headTagPattern =
+    /<title[^>]*>[\s\S]*?<\/title>|<meta[^>]*\/?>|<link[^>]*\/?>|<script\s+type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>/gi;
+  const bodyCleaned = bodyHtml.replace(headTagPattern, "");
+  // Also drop the now-empty hidden wrapper.
+  const visibleBody = bodyCleaned.replace(
+    /<div\s+data-prerender-head="true"[^>]*>\s*<\/div>/i,
     "",
   );
   const finalHtml = injectIntoTemplate(template, head, visibleBody);

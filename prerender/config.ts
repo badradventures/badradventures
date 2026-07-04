@@ -57,7 +57,11 @@ const MUSLIM_HIKING_UK_FAQS = [
 ];
 
 const MUSLIM_HIKING_NEAR_ME_FAQS = [
-  { q: "Where can I go Muslim hiking near me?", a: "Most major UK cities are within two hours of at least one Muslim hiking group. London, Manchester, Birmingham, Leeds, Bradford, Leicester, Glasgow, Edinburgh, Cardiff and Bristol all have active groups. Badr Adventures is based in Cumbria and runs nationwide weekends." },
+  { q: "Is there Muslim hiking near me?", a: "Most major UK cities are within 1–2 hours of a national park or Area of Outstanding Natural Beauty with Muslim hiking groups. London, Manchester, Birmingham, Leeds, Glasgow, Cardiff, Bristol, Leicester and Nottingham all have active communities. Badr Adventures runs guided Muslim hiking trips from all these cities — we organise car shares so you don't need a car." },
+  { q: "How do I find a Muslim hiking group near me?", a: "The fastest way is to search for 'Muslim hiking near me' on Instagram or Facebook — most groups post their events there. Badr Adventures runs guided Muslim hiking weekends from 8 cities across the UK, with transport arranged from a central meeting point. You can also check the Muslim Hikers network at muslimhikers.com for local chapters." },
+  { q: "I don't drive — can I still join a Muslim hiking trip?", a: "Yes. Most Badr Adventures trips arrange car shares from a major train station or city-centre meeting point. We also run trips that start from trailheads accessible by train. Message us for the nearest pick-up point to you." },
+  { q: "What's the closest mountain to London for Muslim hiking?", a: "The South Downs and the Chilterns are your closest options — Box Hill (45 min by train from London Victoria), Seven Sisters (1h 15min from London Bridge), and Ditchling Beacon (1h from London Victoria). For proper mountain terrain, the Peak District is 2h by train from St Pancras." },
+  { q: "Do you run Muslim hiking trips from Manchester?", a: "Yes — Manchester is our busiest hub. We run regular Peak District trips (Mam Tor, Kinder Scout, Stanage Edge) from Manchester Piccadilly, and Lake District weekends (Helvellyn, Catbells) from Manchester Victoria. Most trips depart Saturday morning and return Sunday evening." },
 ];
 
 export type RouteConfig = {
