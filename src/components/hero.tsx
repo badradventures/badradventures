@@ -97,7 +97,12 @@ export default function Hero() {
           className="mt-8 max-w-4xl font-serif text-5xl font-semibold leading-[0.95] tracking-tight text-paper sm:text-7xl lg:text-[88px]"
         >
           Muslim hiking across the UK —{" "}
-          <span className="italic text-[var(--ochre)]">guided, halal, prayer-friendly.</span>
+          <Link
+            to="/muslim-hiking"
+            className="italic text-[var(--ochre)] underline decoration-[var(--ochre)]/40 underline-offset-4 transition hover:decoration-[var(--ochre)]"
+          >
+            guided, halal, prayer-friendly.
+          </Link>
         </h1>
 
         <p

@@ -6,12 +6,17 @@ export const RENDERED_POSTS: Record<string, string> = {
 <p class="lead">
   Muslim hiking in the UK has moved from a niche weekend activity into one of the
   fastest-growing segments of British outdoor recreation. According to the
-  Outdoor Industries Association's 2024 participation report, ethnic-minority
+  <a href="https://www.outdoorindustriesassociation.co.uk/" target="_blank" rel="noopener noreferrer">Outdoor Industries Association</a>'s
+  2024 participation report, ethnic-minority
   participation in hill walking and scrambling grew <strong>38% year-on-year</strong>,
   with Muslim women the largest single demographic in that growth. This guide
   covers everything you need to know: where to go, what to pack, how prayer
   breaks work on the hill, and how to find the right Muslim hiking group near
-  you.
+  you. For a primer on UK hill-walking grades, kit standards, and the
+  qualifications every guide we work with holds, see the
+  <a href="https://www.mountain-training.org/" target="_blank" rel="noopener noreferrer">Mountain Training</a>
+  national governing body, and the
+  <a href="https://www.thebmc.co.uk/" target="_blank" rel="noopener noreferrer">BMC (British Mountaineering Council)</a>.
 </p>
 
 <h2>What "Muslim hiking" actually means</h2>
@@ -179,6 +184,14 @@ export const RENDERED_POSTS: Record<string, string> = {
   Prayer breaks, halal food, women-friendly groups, and a pace that
   respects the slowest hiker are built into every day we run.
 </p>
+
+<h2>Further reading</h2>
+<ul>
+  <li><a href="https://www.outdoorindustriesassociation.co.uk/" target="_blank" rel="noopener noreferrer">Outdoor Industries Association</a> — the UK trade body that publishes the annual participation data referenced in this guide.</li>
+  <li><a href="https://www.mountain-training.org/" target="_blank" rel="noopener noreferrer">Mountain Training</a> — the national governing body for walking, climbing and mountaineering qualifications in the UK and Ireland. Every Badr Adventures guide holds a current Mountain Training award.</li>
+  <li><a href="https://www.thebmc.co.uk/" target="_blank" rel="noopener noreferrer">British Mountaineering Council (BMC)</a> — the representative body for climbers, hill walkers and mountaineers in England and Wales. Excellent resource for access, conservation and safety.</li>
+  <li><a href="https://www.mountainrescue.org.uk/" target="_blank" rel="noopener noreferrer">Mountain Rescue England and Wales</a> — a charity. If a Badr Adventures trip ever goes wrong on the hill, these are the people we call.</li>
+</ul>
 `,
   "halal-hiking-kit-list-uk": `
 <p class="lead">
