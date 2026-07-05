@@ -101,7 +101,8 @@ function clearUmamiStorage(): void {
 function trackOutboundLinks(): () => void {
   if (typeof document === "undefined") return () => {};
   const onClick = (e: MouseEvent) => {
-    if (!window.umami) return;
+    const u = window.umami;
+    if (!u || typeof u.track !== "function") return;
     const target = e.target as HTMLElement | null;
     if (!target) return;
     const anchor = target.closest("a");
@@ -115,7 +116,7 @@ function trackOutboundLinks(): () => void {
       return;
     }
     if (url.host === window.location.host) return;
-    window.umami.track("outbound-link-click", {
+    u.track("outbound-link-click", {
       host: url.host,
       path: url.pathname,
       text: (anchor.textContent || "").trim().slice(0, 80),
@@ -165,16 +166,33 @@ export default function UmamiTracker() {
     if (!window.umami) return;
     if (!hasAnalyticsConsent()) return;
     const utm = readUtm();
-    const timer = setTimeout(() => {
-      window.umami?.trackView(window.location.href, document.referrer);
-      if (Object.keys(utm).length > 0) {
-        window.umami?.track("pageview-with-utm", {
-          path: location.pathname,
-          ...utm,
-        });
+    let cancelled = false;
+    // Wait for the Umami global to expose both .track and .trackView. The
+    // script loads asynchronously after consent and the global can exist
+    // before all methods are bound, so we poll briefly instead of firing
+    // immediately (which would throw "trackView is not a function").
+    const start = Date.now();
+    const fire = () => {
+      if (cancelled) return;
+      const u = window.umami;
+      if (u && typeof u.trackView === "function") {
+        u.trackView(window.location.href, document.referrer);
+        if (Object.keys(utm).length > 0 && typeof u.track === "function") {
+          u.track("pageview-with-utm", {
+            path: location.pathname,
+            ...utm,
+          });
+        }
+        return;
       }
-    }, 250);
-    return () => clearTimeout(timer);
+      if (Date.now() - start < 5000) {
+        setTimeout(fire, 150);
+      }
+    };
+    fire();
+    return () => {
+      cancelled = true;
+    };
   }, [location.pathname, location.search]);
 
   // Outbound link tracking.
