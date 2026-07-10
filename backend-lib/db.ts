@@ -876,6 +876,7 @@ export async function contactMessageInsert(input: {
       email: input.email,
       subject: input.subject,
       message: input.message,
+      consented_at: new Date(input.consentedAt ?? Date.now()).toISOString(),
     };
     if (input.userId !== null) fallback.user_id = input.userId;
     const { error: err2 } = await supabaseAdmin().from("contact_messages").insert(fallback);
