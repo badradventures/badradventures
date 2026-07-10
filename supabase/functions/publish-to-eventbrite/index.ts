@@ -144,6 +144,7 @@ function buildEventPayload(hike: {
   image: string;
   spotsTotal: number;
 }) {
+  const price = typeof hike.priceGbp === "number" && !Number.isNaN(hike.priceGbp) ? hike.priceGbp : 0;
   const hikeUrl = `${HIKE_URL}/${encodeURIComponent(hike.id)}`;
   const startTime = `${hike.date}T09:00:00Z`;
   // Infer end time from duration: try to parse "N days" or "N hours"
@@ -170,7 +171,7 @@ function buildEventPayload(hike: {
     <hr />
     <p><strong>Location:</strong> ${hike.location}, ${hike.region}</p>
     <p><strong>Duration:</strong> ${hike.duration}</p>
-    <p><strong>Price:</strong> £${hike.priceGbp.toFixed(2)} per person</p>
+    <p><strong>Price:</strong> £${price.toFixed(2)} per person</p>
     <p><strong>Spots:</strong> ${hike.spotsTotal}</p>
     <hr />
     <p>Book your place at: <a href="${hikeUrl}">${hikeUrl}</a></p>
