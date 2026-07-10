@@ -39,7 +39,7 @@ export function organizationJsonLd() {
     description:
       "Badr Adventures runs guided hikes across the Lake District, Peak District, Snowdonia and beyond. Small groups, qualified guides, real trips.",
     telephone: "+44-0000-000000",
-    email: "jefferygo0o@gmail.com",
+    email: "enquiries@badradventures.co.uk",
     priceRange: "££",
     currenciesAccepted: "GBP",
     paymentAccepted: "Cash, Credit Card",

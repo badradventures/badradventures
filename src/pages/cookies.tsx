@@ -113,7 +113,7 @@ export default function CookiesPage() {
           <CardContent className="text-sm text-stone-600">
             <p>You were shown a cookie consent banner when you first visited the site. Your choice (accept or reject) is stored in your browser and applies to this site only. You can change your mind at any time using the <button onClick={() => window.dispatchEvent(new CustomEvent("zo:manage-cookies"))} className="text-pine underline cursor-pointer">Manage cookies</button> link in the footer.</p>
             <p className="mt-2">Because we only use essential cookies, rejecting non-essential cookies does not affect how the site works — there are simply no non-essential cookies to block. If we ever add analytics or marketing features, you will be asked for explicit consent before any such cookies are placed.</p>
-            <p className="mt-2">If you have any questions, contact us at <a href="mailto:jefferygo0o@gmail.com" className="text-pine underline">jefferygo0o@gmail.com</a>.</p>
+            <p className="mt-2">If you have any questions, contact us at <a href="mailto:enquiries@badradventures.co.uk" className="text-pine underline">enquiries@badradventures.co.uk</a>.</p>
           </CardContent>
         </Card>
       </div>

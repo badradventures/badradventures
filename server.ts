@@ -11,27 +11,6 @@ const app = new Hono();
 const mode: Mode =
   process.env.NODE_ENV === "production" ? "production" : "development";
 
-// Load config from zosite.json only in development (file is .gitignore'd in prod)
-let config: any = { local_port: 54404, publish: { published_port: 55047 } };
-if (mode === "development") {
-  try {
-    config = await import("./zosite.json");
-  } catch (e) {
-    console.warn(
-      "zosite.json not found, using defaults. In production, use Render env vars."
-    );
-  }
-}
-
-const configEnv = mode === "production" ? config.publish?.env : config.env;
-if (configEnv) {
-  for (const [key, value] of Object.entries(configEnv)) {
-    if (process.env[key] === undefined) {
-      process.env[key] = value;
-    }
-  }
-}
-
 mountRoutes(app);
 
 if (mode === "production") {
@@ -40,13 +19,9 @@ if (mode === "production") {
   await configureDevelopment(app);
 }
 
-const port = process.env.PORT
-  ? parseInt(process.env.PORT, 10)
-  : mode === "production"
-    ? (config.publish?.published_port ?? config.local_port)
-    : config.local_port;
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
-export default { fetch: app.fetch, port, idleTimeout: 255 };
+export default { fetch: app.fetch, port };
 
 function injectRuntimeEnv(html: string): string {
   const runtimeEnv = {
@@ -109,7 +84,6 @@ async function configureDevelopment(app: Hono): Promise<ViteDevServer> {
         host: "localhost",
         port: 24678,
       },
-      ws: true,
     },
     appType: "custom",
   });

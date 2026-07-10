@@ -29,7 +29,7 @@ export default function RefundPage() {
             <CardTitle>Hike cancellations by you</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-stone-600">
-            <p>You may cancel a hike booking at any time by emailing jefferygo0o@gmail.com with your booking reference. Refunds are calculated based on when we receive your cancellation notice:</p>
+            <p>You may cancel a hike booking at any time by emailing enquiries@badradventures.co.uk with your booking reference. Refunds are calculated based on when we receive your cancellation notice:</p>
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-ink/10">
@@ -126,7 +126,7 @@ export default function RefundPage() {
             <CardTitle>Contact for cancellations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-stone-600">
-            <p>Email: <a href="mailto:jefferygo0o@gmail.com" className="text-pine underline">jefferygo0o@gmail.com</a></p>
+            <p>Email: <a href="mailto:enquiries@badradventures.co.uk" className="text-pine underline">enquiries@badradventures.co.uk</a></p>
             <p>Please include your booking reference number. We aim to respond within 24 hours.</p>
             <p className="mt-4 text-xs text-stone-500">
               Your statutory rights under the Consumer Contracts Regulations 2013 are not affected.

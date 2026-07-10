@@ -33,8 +33,9 @@ Run these in order in the Supabase SQL Editor (Dashboard → SQL
 ## Wiring this Zo site to Supabase
 
 The site reads from `process.env` on the server and from
-`import.meta.env` on the client. The values are set in
-`zosite.json` (see `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+`import.meta.env` on the client. The values are set in the
+Netlify dashboard under Site settings → Environment variables
+(see `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
 `SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL`,
 `VITE_SUPABASE_ANON_KEY`).
 
@@ -72,6 +73,31 @@ served from the Zo site's `public/images/`. The `image` and
 columns that store either a `/images/...` path (legacy) or a
 public URL from the bucket.
 
+### Bucket setup
+
+Create the bucket (Dashboard → Storage → New bucket):
+
+- **Name**: `site-assets`
+- **Public bucket**: ON (the public URL of each object is
+  what gets stored in `hikes.image` / `equipment.image`).
+- **Allowed MIME types**: `image/jpeg`, `image/png`,
+  `image/webp`, `image/gif`, `image/avif`.
+- **File size limit**: 1.5 MB (the API caps at 1.4 MB to
+  stay under Netlify Functions' default 6 MB request limit
+  with JSON + multipart overhead).
+
+Folder layout inside the bucket:
+
+- `site-assets/hikes/<slug>/<timestamp>-<rand>.jpg` — hike
+  cover & hero images uploaded from the admin "Add new hike"
+  form.
+- `site-assets/equipment/<slug>/<timestamp>-<rand>.jpg` —
+  equipment images uploaded from "Add new equipment".
+
+The admin "Add new hike" / "Add new equipment" forms upload
+via `POST /api/admin/upload` (admin-only) and the returned
+public URL is what the form binds to `image` / `hero`.
+
 To migrate an existing image:
 
 ```sql
@@ -82,6 +108,7 @@ where id = 'kinder-scout';
 
 ## Local development
 
-The Zo site reads its Supabase env from `zosite.json`. To
-point at a different project, edit the env block and reload
-the dev server. No `.env` file is needed.
+The Zo site reads its Supabase env from the Netlify dashboard
+(or a local `.env` if running `netlify dev`). To point at a
+different project, update the env vars and reload the dev
+server.

@@ -77,7 +77,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-semibold text-stone-900">Email</h3>
-                  <p className="text-sm text-stone-600">jefferygo0o@gmail.com</p>
+                  <p className="text-sm text-stone-600">enquiries@badradventures.co.uk</p>
                   <p className="mt-1 text-xs text-stone-500">Replies within 24 hours.</p>
                 </div>
               </CardContent>

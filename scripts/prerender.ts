@@ -27,8 +27,18 @@ import { ThemeProvider } from "../src/components/theme-provider";
 const distDir = resolve(process.cwd(), "dist");
 const templatePath = join(distDir, "index.html");
 
+type CreateFn = (type: React.ComponentType<unknown>, props: Record<string, unknown> | null, ...children: ReactNode[]) => React.ReactElement;
+const ce = React.createElement as unknown as CreateFn;
+
+type AnyComp = React.ComponentType<any>;
+const createAny: (type: AnyComp | string, props: any, ...children: ReactNode[]) => React.ReactElement =
+  React.createElement as any;
+const siteShell = SiteShell as unknown as AnyComp;
+const routesComp = Routes as unknown as AnyComp;
+const routeComp = Route as unknown as AnyComp;
+
 function buildBodyHtml(route: (typeof ROUTES)[number]): string {
-  const Page = route.Page;
+  const pageComp = route.Page as unknown as AnyComp;
   const seoProps = {
     title: route.seo.title,
     description: route.seo.description,
@@ -59,63 +69,51 @@ function buildBodyHtml(route: (typeof ROUTES)[number]): string {
     headBits,
   );
 
-  const pageBody = React.createElement(
+  const pageBody = createAny(
     "div",
     { "data-prerender-body": "true" },
-    React.createElement(
-      Routes as React.ComponentType<{ children: ReactNode }>,
+    createAny(
+      Routes as AnyComp,
       null,
-      React.createElement(Route as React.ComponentType<unknown>, {
+      createAny(Route as AnyComp, {
         key: "home",
         path: "/",
-        element: React.createElement(
-          Page as React.ComponentType<unknown>,
-          null,
-        ),
+        element: createAny(pageComp, null),
       }),
       // /blog/:slug — useParams reads :slug from the matched route
-      React.createElement(Route as React.ComponentType<unknown>, {
+      createAny(Route as AnyComp, {
         key: "blog-slug",
         path: "/blog/:slug",
-        element: React.createElement(
-          Page as React.ComponentType<unknown>,
-          null,
-        ),
+        element: createAny(pageComp, null),
       }),
       // /hikes/:id — hike detail pages
-      React.createElement(Route as React.ComponentType<unknown>, {
+      createAny(Route as AnyComp, {
         key: "hike-id",
         path: "/hikes/:id",
-        element: React.createElement(
-          Page as React.ComponentType<unknown>,
-          null,
-        ),
+        element: createAny(pageComp, null),
       }),
       // Catch-all for static pages (any non-param path)
-      React.createElement(Route as React.ComponentType<unknown>, {
+      createAny(Route as AnyComp, {
         key: "static",
         path: "*",
-        element: React.createElement(
-          Page as React.ComponentType<unknown>,
-          null,
-        ),
+        element: createAny(pageComp, null),
       }),
     ),
   );
 
   // Mirror the live App.tsx tree shape so page components get the
   // same providers (ThemeProvider, CartProvider, SiteShell).
-  const tree = React.createElement(
-    StaticRouter,
+  const tree = createAny(
+    StaticRouter as AnyComp,
     { location: route.path },
-    React.createElement(
-      ThemeProvider as React.ComponentType<{ children: ReactNode }>,
+    createAny(
+      ThemeProvider as AnyComp,
       { defaultTheme: "light" },
-      React.createElement(
-        CartProvider as React.ComponentType<{ children: ReactNode }>,
+      createAny(
+        CartProvider as AnyComp,
         null,
-        React.createElement(
-          SiteShell as React.ComponentType<{ children: ReactNode }>,
+        createAny(
+          SiteShell as AnyComp,
           null,
           headComponents,
           pageBody,
@@ -373,7 +371,7 @@ async function writeLlmsTxt() {
   lines.push("## Company");
   lines.push("");
   lines.push(
-    "Badr Adventures UK Ltd · Company no. 15921546 · Registered office: 106 Castlesteads Drive, Carlisle, CA2 7XD, UK · Email: jefferygo0o@gmail.com",
+    "Badr Adventures UK Ltd · Company no. 15921546 · Registered office: 106 Castlesteads Drive, Carlisle, CA2 7XD, UK · Email: enquiries@badradventures.co.uk",
   );
   await writeFile(
     join(distDir, "llms.txt"),

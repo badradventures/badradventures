@@ -3,7 +3,7 @@
 const RESEND_URL = "https://api.resend.com/emails";
 
 export function adminEmail(): string {
-  return process.env.ADMIN_EMAIL || "jefferygo0o@gmail.com";
+  return process.env.ADMIN_EMAIL || "enquiries@badradventures.co.uk";
 }
 
 export function isResendConfigured(): boolean {

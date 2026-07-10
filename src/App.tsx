@@ -26,6 +26,7 @@ import CookiesPage from "@/pages/cookies";
 import TermsPage from "@/pages/terms";
 import RefundPage from "@/pages/refund";
 import { SiteShell } from "@/components/site-shell";
+import { ScrollToTop } from "@/components/scroll-to-top";
 import { Toaster } from "@/components/ui/sonner";
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
     <ThemeProvider defaultTheme="light">
       <CartProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <SiteShell>
             <Routes>
               <Route path="/" element={<HomePage />} />

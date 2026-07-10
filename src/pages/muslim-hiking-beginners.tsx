@@ -378,16 +378,16 @@ export default function MuslimHikingBeginnersPage() {
           <div className="mt-10 space-y-3">
             {FAQS.map((f) => (
               <details
-                key={f.q}
+                key={f.question}
                 className="group rounded-2xl border border-ink/10 bg-paper p-6 open:border-rust/40"
               >
                 <summary className="flex cursor-pointer items-center justify-between gap-4 font-serif text-lg font-medium">
-                  {f.q}
+                  {f.question}
                   <span className="ml-4 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-ink/15 text-ink-2 transition group-open:rotate-45">
                     +
                   </span>
                 </summary>
-                <p className="mt-4 leading-relaxed text-ink-2">{f.a}</p>
+                <p className="mt-4 leading-relaxed text-ink-2">{f.answer}</p>
               </details>
             ))}
           </div>

@@ -7,14 +7,14 @@
 //
 // Env vars:
 //   RESEND_API_KEY
-//   ADMIN_EMAIL           (defaults to jefferygo0o@gmail.com)
+//   ADMIN_EMAIL           (defaults to enquiries@badradventures.co.uk)
 //   EMAIL_FROM            (defaults to "Badr Adventures <onboarding@resend.dev>")
 //   NOTIFY_SECRET         (optional — bearer token to prevent public access)
 
 const RESEND_URL = "https://api.resend.com/emails";
 
 function adminEmail(): string {
-  return Deno.env.get("ADMIN_EMAIL") || "jefferygo0o@gmail.com";
+  return Deno.env.get("ADMIN_EMAIL") || "enquiries@badradventures.co.uk";
 }
 
 function fromAddress(): string {

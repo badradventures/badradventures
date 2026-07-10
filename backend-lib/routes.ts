@@ -11,6 +11,7 @@
 // call (which the frontend skill will do separately).
 
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { z } from "zod";
 import {
   HTTPError,
@@ -98,6 +99,17 @@ function nextId(prefix: string): string {
   const rand = Math.random().toString(36).slice(2, 10);
   const t = Date.now().toString(36);
   return `${prefix}_${t}${rand}`;
+}
+
+function mimeToExt(mime: string): string {
+  switch (mime) {
+    case "image/jpeg": return "jpg";
+    case "image/png": return "png";
+    case "image/webp": return "webp";
+    case "image/gif": return "gif";
+    case "image/avif": return "avif";
+    default: return "bin";
+  }
 }
 
 function handleError(err: unknown): Response {
@@ -1175,6 +1187,99 @@ export function mountRoutes(app: Hono) {
       const ok = await deleteEquipment(id);
       if (!ok) return c.json({ error: "Not found" }, 404);
       return c.json({ ok: true });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  // ---- Admin image upload (Supabase Storage) ----
+  //
+  // Accepts a multipart/form-data POST with a single `file` field. Saves the
+  // file under `<bucket>/<kind>/<timestamp>-<random>.<ext>` in the
+  // `site-assets` bucket, and returns the public URL the client can stick
+  // into the hike/equipment `image` / `hero` column.
+  //
+  // `kind` is either "hikes" or "equipment" — it picks the storage folder
+  // and is enforced so we never get a tent image in the hikes folder by
+  // accident.
+  const UPLOAD_KIND_RE = /^(hikes|equipment)$/;
+  const UPLOAD_MAX_BYTES = 1400 * 1024; // 1.4 MB
+  const UPLOAD_ALLOWED_MIME = new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "image/avif",
+  ]);
+  const UPLOAD_BUCKET = "site-assets";
+
+  app.post("/api/admin/upload", async (c) => {
+    try {
+      await requireAdmin(c);
+
+      const form = await c.req.formData();
+      const rawKind = (form.get("kind") ?? c.req.query("kind") ?? "").toString();
+      const kind = rawKind === "hikes" || rawKind === "equipment" ? rawKind : "";
+      if (!kind) {
+        return c.json(
+          { error: "kind must be either 'hikes' or 'equipment'" },
+          400,
+        );
+      }
+      const rawFolder = (form.get("folder") ?? "").toString();
+      const folder = rawFolder
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 80) || "misc";
+      const file = form.get("file");
+      if (!(file instanceof File)) {
+        return c.json({ error: "No file uploaded (expected 'file' field)" }, 400);
+      }
+      if (file.size === 0) {
+        return c.json({ error: "Uploaded file is empty" }, 400);
+      }
+      if (file.size > UPLOAD_MAX_BYTES) {
+        return c.json(
+          { error: `File is too large (max ${UPLOAD_MAX_BYTES / 1024 / 1024} MB)` },
+          400,
+        );
+      }
+      const mime = file.type || "application/octet-stream";
+      if (!UPLOAD_ALLOWED_MIME.has(mime)) {
+        return c.json(
+          { error: `Unsupported file type: ${mime}. Use JPEG, PNG, WebP, GIF, or AVIF.` },
+          400,
+        );
+      }
+
+      const ext = mimeToExt(mime);
+      const safeName = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const objectPath = `${kind}/${folder}/${safeName}`;
+
+      const arrayBuffer = await file.arrayBuffer();
+      const { error: uploadErr } = await supabaseAdmin().storage
+        .from(UPLOAD_BUCKET)
+        .upload(objectPath, arrayBuffer, {
+          contentType: mime,
+          cacheControl: "31536000",
+          upsert: false,
+        });
+      if (uploadErr) {
+        return c.json({ error: `Upload failed: ${uploadErr.message}` }, 500);
+      }
+
+      const { data: pub } = supabaseAdmin().storage
+        .from(UPLOAD_BUCKET)
+        .getPublicUrl(objectPath);
+
+      return c.json({
+        ok: true,
+        url: pub.publicUrl,
+        path: objectPath,
+        size: file.size,
+        mime,
+      });
     } catch (err) {
       return handleError(err);
     }

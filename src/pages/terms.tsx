@@ -81,8 +81,8 @@ export default function TermsPage() {
             </ul>
             <p>
               To cancel, email us at{" "}
-              <a href="mailto:jefferygo0o@gmail.com" className="text-pine underline">
-                jefferygo0o@gmail.com
+              <a href="mailto:enquiries@badradventures.co.uk" className="text-pine underline">
+                enquiries@badradventures.co.uk
               </a>{" "}
               with your booking reference. Refunds are processed within 14 days.
             </p>
@@ -196,8 +196,8 @@ export default function TermsPage() {
           <CardContent className="space-y-3 text-sm text-stone-600">
             <p>
               For questions about these terms, contact us at{" "}
-              <a href="mailto:jefferygo0o@gmail.com" className="text-pine underline">
-                jefferygo0o@gmail.com
+              <a href="mailto:enquiries@badradventures.co.uk" className="text-pine underline">
+                enquiries@badradventures.co.uk
               </a>{" "}
               or via our{" "}
               <Link to="/contact" className="text-pine underline">

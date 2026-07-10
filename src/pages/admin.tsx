@@ -1,27 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  CalendarDays,
-  CheckCircle2,
-  Edit3,
-  Mail,
-  Mountain,
-  Pencil,
-  Plus,
-  RefreshCcw,
-  Save,
-  Search,
-  ShieldCheck,
-  TrendingUp,
-  Users,
-  Wallet,
-  X,
-  Send,
-  Trash2,
-  Tent,
-  Package,
-} from "lucide-react";
-import { api, formatDate, formatGbp } from "@/lib/api";
+import { AlertCircle, CalendarDays, CheckCircle2, Edit3, Mail, Mountain, Pencil, Plus, RefreshCcw, Save, Search, ShieldCheck, TrendingUp, Users, Wallet, X, Send, Trash2, Tent, Package } from "lucide-react";
+import { api, formatDate, formatGbp, type ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +13,48 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useAuth } from "@/components/site-shell";
 import { toast } from "sonner";
 import { usePageSeo } from "@/lib/seo";
+import { cn } from "@/lib/utils";
+import { ImageUploader } from "@/components/image-uploader";
+
+const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+type FieldErrors = Record<string, string>;
+
+function FieldError({ id, message }: { id?: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} role="alert" className="mt-1 flex items-start gap-1 text-xs text-rose-700">
+      <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+      <span>{message}</span>
+    </p>
+  );
+}
+
+function fieldClass(hasError: boolean) {
+  return cn("mt-1", hasError && "border-rose-500 focus-visible:ring-rose-500");
+}
+
+function mapZodDetailsToFields(details: unknown): FieldErrors {
+  if (!Array.isArray(details)) return {};
+  const out: FieldErrors = {};
+  for (const issue of details) {
+    if (!issue || typeof issue !== "object") continue;
+    const path = Array.isArray((issue as { path?: unknown }).path) ? (issue as { path: unknown[] }).path : [];
+    const message = typeof (issue as { message?: unknown }).message === "string" ? (issue as { message: string }).message : "";
+    if (!path.length || !message) continue;
+    const key = String(path[0]);
+    if (!out[key]) out[key] = message;
+  }
+  return out;
+}
+
+function mergeErrors(...maps: FieldErrors[]): FieldErrors {
+  return maps.reduce<FieldErrors>((acc, m) => {
+    for (const [k, v] of Object.entries(m)) if (!acc[k] && v) acc[k] = v;
+    return acc;
+  }, {});
+}
 
 type Overview = {
   counts: {
@@ -421,13 +443,118 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
   const [guide, setGuide] = useState(isNew ? "" : hike.guide);
   const [tags, setTags] = useState(isNew ? "" : hike.tags.join(", "));
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const values = useMemo(
+    () => ({ id, title, location, region, date, duration, difficulty, priceGbp, spotsTotal, summary, description, image, hero, guide, tags }),
+    [id, title, location, region, date, duration, difficulty, priceGbp, spotsTotal, summary, description, image, hero, guide, tags],
+  );
+
+  function validateHike(v: typeof values, requireAll: boolean): FieldErrors {
+    const e: FieldErrors = {};
+    const trimmedId = v.id.trim();
+    const trimmedTitle = v.title.trim();
+    const trimmedLocation = v.location.trim();
+    const trimmedRegion = v.region.trim();
+    const trimmedDate = v.date.trim();
+    const trimmedDuration = v.duration.trim();
+    const trimmedSummary = v.summary.trim();
+    const trimmedDescription = v.description.trim();
+    const trimmedImage = v.image.trim();
+    const trimmedGuide = v.guide.trim();
+    const price = Number(v.priceGbp);
+    const spots = Number(v.spotsTotal);
+
+    if (isNew) {
+      if (!trimmedId) e.id = "ID is required.";
+      else if (trimmedId.length < 2) e.id = "ID must be at least 2 characters.";
+      else if (trimmedId.length > 80) e.id = "ID must be 80 characters or fewer.";
+      else if (!SLUG_RE.test(trimmedId)) e.id = "Use lowercase letters, numbers, and hyphens only (e.g. kinder-scout).";
+    }
+    if (!trimmedTitle) e.title = "Title is required.";
+    else if (trimmedTitle.length < 2) e.title = "Title must be at least 2 characters.";
+    if (!trimmedLocation) e.location = "Location is required.";
+    if (!trimmedRegion) e.region = "Region is required.";
+    if (!trimmedDate) e.date = "Date is required.";
+    else if (!DATE_RE.test(trimmedDate)) e.date = "Use a valid date (YYYY-MM-DD).";
+    if (!trimmedDuration) e.duration = "Duration is required.";
+    if (!v.difficulty) e.difficulty = "Pick a difficulty.";
+
+    if (v.priceGbp.trim() === "" || Number.isNaN(price)) e.priceGbp = "Enter a price in GBP.";
+    else if (price < 0) e.priceGbp = "Price can't be negative.";
+
+    if (v.spotsTotal.trim() === "" || !Number.isFinite(spots) || !Number.isInteger(spots)) e.spotsTotal = "Enter a whole number.";
+    else if (requireAll ? spots < 1 : spots < 0) e.spotsTotal = "Must be at least 1 when creating.";
+    else if (spots > 500) e.spotsTotal = "Max 500 spots.";
+
+    if (isNew) {
+      if (!trimmedImage) e.image = "Image URL is required.";
+      if (!trimmedGuide) e.guide = "Guide name is required.";
+    }
+    if (!trimmedSummary) e.summary = "Summary is required.";
+    else if (trimmedSummary.length < 2) e.summary = "Summary must be at least 2 characters.";
+    if (!trimmedDescription) e.description = "Description is required.";
+    else if (trimmedDescription.length < 10) e.description = "Description must be at least 10 characters.";
+
+    return e;
+  }
+
+  const liveErrors = useMemo(() => validateHike(values, false), [values]);
+  function errFor(field: string) {
+    return touched[field] ? errors[field] || liveErrors[field] : undefined;
+  }
+
+  function markTouched(field: string) {
+    setTouched((t) => (t[field] ? t : { ...t, [field]: true }));
+  }
 
   async function save() {
+    const v = validateHike(values, true);
+    setErrors(v);
+    setTouched(
+      Object.keys(values).reduce<Record<string, boolean>>((acc, k) => {
+        acc[k] = true;
+        return acc;
+      }, {}),
+    );
+    if (Object.keys(v).length > 0) {
+      toast.error("Please fix the highlighted fields.");
+      return;
+    }
+
     setSaving(true);
     try {
-      const body = {
-        ...(isNew ? { id, title, location, region, date, duration, difficulty, spotsTotal: Number(spotsTotal), priceGbp: Number(priceGbp), summary, description, image, hero: hero || image, guide, tags: tags.split(",").map((t) => t.trim()).filter(Boolean) } : { title, location, date, duration, difficulty, priceGbp: Number(priceGbp), spotsTotal: Number(spotsTotal), summary, description, tags: tags.split(",").map((t) => t.trim()).filter(Boolean) }),
-      };
+      const body = isNew
+        ? {
+            id: id.trim(),
+            title: title.trim(),
+            location: location.trim(),
+            region: region.trim(),
+            date,
+            duration: duration.trim(),
+            difficulty,
+            spotsTotal: Number(spotsTotal),
+            priceGbp: Number(priceGbp),
+            summary: summary.trim(),
+            description: description.trim(),
+            image: image.trim(),
+            hero: hero.trim() || image.trim(),
+            guide: guide.trim(),
+            tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+          }
+        : {
+            title: title.trim(),
+            location: location.trim(),
+            date,
+            duration: duration.trim(),
+            difficulty,
+            priceGbp: Number(priceGbp),
+            spotsTotal: Number(spotsTotal),
+            summary: summary.trim(),
+            description: description.trim(),
+            tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+          };
       await api(isNew ? "/api/admin/hikes" : `/api/admin/hikes/${hike.id}`, {
         method: isNew ? "POST" : "PATCH",
         body: JSON.stringify(body),
@@ -435,7 +562,20 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
       toast.success(isNew ? "Hike created." : "Hike updated.");
       onSaved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
+      const apiErr = err as ApiError;
+      const fieldErrs = mapZodDetailsToFields(apiErr.body && typeof apiErr.body === "object" ? (apiErr.body as { details?: unknown }).details : undefined);
+      if (Object.keys(fieldErrs).length > 0) {
+        setErrors(mergeErrors(liveErrors, fieldErrs));
+        setTouched(
+          Object.keys(values).reduce<Record<string, boolean>>((acc, k) => {
+            acc[k] = true;
+            return acc;
+          }, {}),
+        );
+        toast.error("Please fix the highlighted fields.");
+      } else {
+        toast.error(apiErr.message || "Failed to save");
+      }
     } finally {
       setSaving(false);
     }
@@ -452,70 +592,211 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
           {isNew && (
             <div className="sm:col-span-2">
               <Label htmlFor="hid">ID (URL slug, e.g. kinder-scout)</Label>
-              <Input id="hid" value={id} onChange={(e) => setId(e.target.value)} placeholder="kinder-scout" className="mt-1 font-mono text-sm" />
+              <Input
+                id="hid"
+                value={id}
+                onChange={(e) => setId(e.target.value)}
+                onBlur={() => markTouched("id")}
+                placeholder="kinder-scout"
+                className={cn("mt-1 font-mono text-sm", errFor("id") && "border-rose-500 focus-visible:ring-rose-500")}
+                aria-invalid={!!errFor("id")}
+                aria-describedby={errFor("id") ? "hid-err" : undefined}
+              />
+              <FieldError id="hid-err" message={errFor("id")} />
             </div>
           )}
           <div className="sm:col-span-2">
             <Label htmlFor="title">Title</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1" />
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={() => markTouched("title")}
+              className={fieldClass(!!errFor("title"))}
+              aria-invalid={!!errFor("title")}
+              aria-describedby={errFor("title") ? "title-err" : undefined}
+            />
+            <FieldError id="title-err" message={errFor("title")} />
           </div>
           <div>
             <Label htmlFor="loc">Location</Label>
-            <Input id="loc" value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1" />
+            <Input
+              id="loc"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              onBlur={() => markTouched("location")}
+              className={fieldClass(!!errFor("location"))}
+              aria-invalid={!!errFor("location")}
+              aria-describedby={errFor("location") ? "loc-err" : undefined}
+            />
+            <FieldError id="loc-err" message={errFor("location")} />
           </div>
           <div>
             <Label htmlFor="region">Region</Label>
-            <Input id="region" value={region} onChange={(e) => setRegion(e.target.value)} className="mt-1" placeholder="e.g. Lake District" />
+            <Input
+              id="region"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              onBlur={() => markTouched("region")}
+              className={fieldClass(!!errFor("region"))}
+              placeholder="e.g. Lake District"
+              aria-invalid={!!errFor("region")}
+              aria-describedby={errFor("region") ? "region-err" : undefined}
+            />
+            <FieldError id="region-err" message={errFor("region")} />
           </div>
           <div>
             <Label htmlFor="date">Date</Label>
-            <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="mt-1" />
+            <Input
+              id="date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              onBlur={() => markTouched("date")}
+              className={fieldClass(!!errFor("date"))}
+              aria-invalid={!!errFor("date")}
+              aria-describedby={errFor("date") ? "date-err" : undefined}
+            />
+            <FieldError id="date-err" message={errFor("date")} />
           </div>
           <div>
             <Label htmlFor="dur">Duration</Label>
-            <Input id="dur" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="e.g. 2 days" className="mt-1" />
+            <Input
+              id="dur"
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              onBlur={() => markTouched("duration")}
+              placeholder="e.g. 2 days"
+              className={fieldClass(!!errFor("duration"))}
+              aria-invalid={!!errFor("duration")}
+              aria-describedby={errFor("duration") ? "dur-err" : undefined}
+            />
+            <FieldError id="dur-err" message={errFor("duration")} />
           </div>
           <div>
             <Label htmlFor="diff">Difficulty</Label>
-            <select id="diff" value={difficulty} onChange={(e) => setDifficulty(e.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            <select
+              id="diff"
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+              onBlur={() => markTouched("difficulty")}
+              className={cn("mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50", errFor("difficulty") && "border-rose-500 focus-visible:ring-rose-500")}
+              aria-invalid={!!errFor("difficulty")}
+              aria-describedby={errFor("difficulty") ? "diff-err" : undefined}
+            >
               {DIFFICULTIES.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
+            <FieldError id="diff-err" message={errFor("difficulty")} />
           </div>
           <div>
             <Label htmlFor="price">Price (GBP)</Label>
-            <Input id="price" type="number" step="0.01" value={priceGbp} onChange={(e) => setPriceGbp(e.target.value)} className="mt-1" />
+            <Input
+              id="price"
+              type="number"
+              step="0.01"
+              min="0"
+              value={priceGbp}
+              onChange={(e) => setPriceGbp(e.target.value)}
+              onBlur={() => markTouched("priceGbp")}
+              className={fieldClass(!!errFor("priceGbp"))}
+              aria-invalid={!!errFor("priceGbp")}
+              aria-describedby={errFor("priceGbp") ? "price-err" : undefined}
+            />
+            <FieldError id="price-err" message={errFor("priceGbp")} />
           </div>
           <div>
             <Label htmlFor="spots">Total spots</Label>
-            <Input id="spots" type="number" value={spotsTotal} onChange={(e) => setSpotsTotal(e.target.value)} className="mt-1" />
+            <Input
+              id="spots"
+              type="number"
+              min="0"
+              value={spotsTotal}
+              onChange={(e) => setSpotsTotal(e.target.value)}
+              onBlur={() => markTouched("spotsTotal")}
+              className={fieldClass(!!errFor("spotsTotal"))}
+              aria-invalid={!!errFor("spotsTotal")}
+              aria-describedby={errFor("spotsTotal") ? "spots-err" : undefined}
+            />
+            <FieldError id="spots-err" message={errFor("spotsTotal")} />
           </div>
           {isNew && (
             <>
-              <div className="sm:col-span-2">
-                <Label htmlFor="img">Image URL</Label>
-                <Input id="img" value={image} onChange={(e) => setImage(e.target.value)} className="mt-1" placeholder="/images/hike-name.jpg" />
-              </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="hero">Hero image URL (optional)</Label>
-                <Input id="hero" value={hero} onChange={(e) => setHero(e.target.value)} className="mt-1" />
-              </div>
+              <ImageUploader
+                label="Cover image"
+                value={image}
+                onChange={(url) => { setImage(url); markTouched("image"); }}
+                onBlur={() => markTouched("image")}
+                bucket="hikes"
+                folder={id || "draft"}
+                fieldId="img"
+                error={errFor("image")}
+                errorId="img-err"
+              />
+              <ImageUploader
+                label="Hero image (optional)"
+                value={hero}
+                onChange={(url) => { setHero(url); markTouched("hero"); }}
+                onBlur={() => markTouched("hero")}
+                bucket="hikes"
+                folder={id || "draft"}
+                fieldId="hero"
+                error={errFor("hero")}
+                errorId="hero-err"
+                description="Large banner image. Leave empty to use the cover image."
+              />
               <div className="sm:col-span-2">
                 <Label htmlFor="guide">Guide name</Label>
-                <Input id="guide" value={guide} onChange={(e) => setGuide(e.target.value)} className="mt-1" />
+                <Input
+                  id="guide"
+                  value={guide}
+                  onChange={(e) => setGuide(e.target.value)}
+                  onBlur={() => markTouched("guide")}
+                  className={fieldClass(!!errFor("guide"))}
+                  aria-invalid={!!errFor("guide")}
+                  aria-describedby={errFor("guide") ? "guide-err" : undefined}
+                />
+                <FieldError id="guide-err" message={errFor("guide")} />
               </div>
             </>
           )}
           <div className="sm:col-span-2">
             <Label htmlFor="tags">Tags (comma separated)</Label>
-            <Input id="tags" value={tags} onChange={(e) => setTags(e.target.value)} className="mt-1" />
+            <Input
+              id="tags"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              onBlur={() => markTouched("tags")}
+              className={fieldClass(!!errFor("tags"))}
+              aria-invalid={!!errFor("tags")}
+              aria-describedby={errFor("tags") ? "tags-err" : undefined}
+            />
+            <FieldError id="tags-err" message={errFor("tags")} />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="summary">Summary</Label>
-            <Input id="summary" value={summary} onChange={(e) => setSummary(e.target.value)} className="mt-1" />
+            <Input
+              id="summary"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              onBlur={() => markTouched("summary")}
+              className={fieldClass(!!errFor("summary"))}
+              aria-invalid={!!errFor("summary")}
+              aria-describedby={errFor("summary") ? "summary-err" : undefined}
+            />
+            <FieldError id="summary-err" message={errFor("summary")} />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="desc">Description</Label>
-            <Textarea id="desc" value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 min-h-[160px]" />
+            <Textarea
+              id="desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onBlur={() => markTouched("description")}
+              className={fieldClass(!!errFor("description"))}
+              aria-invalid={!!errFor("description")}
+              aria-describedby={errFor("description") ? "desc-err" : undefined}
+            />
+            <FieldError id="desc-err" message={errFor("description")} />
           </div>
         </div>
         <DialogFooter className="gap-2">
@@ -543,13 +824,98 @@ function EquipmentDialog({ equipment, onClose, onSaved }: { equipment: AdminEqui
   const [stock, setStock] = useState(isNew ? "2" : String(equipment.totalUnits));
   const [amenities, setAmenities] = useState(isNew ? "" : (equipment.features || []).join(", "));
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const values = useMemo(
+    () => ({ id, name, type, summary, description, image, location, capacity, priceGbp, stock, amenities }),
+    [id, name, type, summary, description, image, location, capacity, priceGbp, stock, amenities],
+  );
+
+  function validateEquipment(v: typeof values): FieldErrors {
+    const e: FieldErrors = {};
+    const trimmedId = v.id.trim();
+    const trimmedName = v.name.trim();
+    const trimmedSummary = v.summary.trim();
+    const trimmedImage = v.image.trim();
+    const trimmedLocation = v.location.trim();
+    const cap = Number(v.capacity);
+    const price = Number(v.priceGbp);
+    const stk = Number(v.stock);
+
+    if (isNew) {
+      if (!trimmedId) e.id = "ID is required.";
+      else if (trimmedId.length < 2) e.id = "ID must be at least 2 characters.";
+      else if (trimmedId.length > 80) e.id = "ID must be 80 characters or fewer.";
+      else if (!SLUG_RE.test(trimmedId)) e.id = "Use lowercase letters, numbers, and hyphens only (e.g. 3-person-tent).";
+    }
+    if (!trimmedName) e.name = "Name is required.";
+    if (!v.type) e.type = "Pick a type.";
+
+    if (v.capacity.trim() === "" || !Number.isFinite(cap) || !Number.isInteger(cap)) e.capacity = "Enter a whole number.";
+    else if (cap < 1) e.capacity = "Must be at least 1 person.";
+
+    if (v.priceGbp.trim() === "" || Number.isNaN(price)) e.priceGbp = "Enter a price in GBP.";
+    else if (price < 0) e.priceGbp = "Price can't be negative.";
+
+    if (v.stock.trim() === "" || !Number.isFinite(stk) || !Number.isInteger(stk)) e.stock = "Enter a whole number.";
+    else if (stk < 0) e.stock = "Stock can't be negative.";
+
+    if (isNew && !trimmedImage) e.image = "Image URL is required.";
+    if (!trimmedLocation) e.location = "Location is required.";
+    if (!trimmedSummary) e.summary = "Summary is required.";
+    return e;
+  }
+
+  const liveErrors = useMemo(() => validateEquipment(values), [values]);
+  function errFor(field: string) {
+    return touched[field] ? errors[field] || liveErrors[field] : undefined;
+  }
+  function markTouched(field: string) {
+    setTouched((t) => (t[field] ? t : { ...t, [field]: true }));
+  }
 
   async function save() {
+    const v = validateEquipment(values);
+    setErrors(v);
+    setTouched(
+      Object.keys(values).reduce<Record<string, boolean>>((acc, k) => {
+        acc[k] = true;
+        return acc;
+      }, {}),
+    );
+    if (Object.keys(v).length > 0) {
+      toast.error("Please fix the highlighted fields.");
+      return;
+    }
+
     setSaving(true);
     try {
       const body = isNew
-        ? { id, type, name, summary, description, image, location, pricePerNightGbp: Number(priceGbp), capacity: Number(capacity), stock: Number(stock), amenities: amenities.split(",").map((a) => a.trim()).filter(Boolean) }
-        : { type, name, summary, description, location, pricePerNightGbp: Number(priceGbp), capacity: Number(capacity), stock: Number(stock), amenities: amenities.split(",").map((a) => a.trim()).filter(Boolean) };
+        ? {
+            id: id.trim(),
+            type,
+            name: name.trim(),
+            summary: summary.trim(),
+            description: description.trim(),
+            image: image.trim(),
+            location: location.trim(),
+            pricePerNightGbp: Number(priceGbp),
+            capacity: Number(capacity),
+            stock: Number(stock),
+            amenities: amenities.split(",").map((a) => a.trim()).filter(Boolean),
+          }
+        : {
+            type,
+            name: name.trim(),
+            summary: summary.trim(),
+            description: description.trim(),
+            location: location.trim(),
+            pricePerNightGbp: Number(priceGbp),
+            capacity: Number(capacity),
+            stock: Number(stock),
+            amenities: amenities.split(",").map((a) => a.trim()).filter(Boolean),
+          };
       await api(isNew ? "/api/admin/equipment" : `/api/admin/equipment/${equipment.id}`, {
         method: isNew ? "POST" : "PATCH",
         body: JSON.stringify(body),
@@ -557,7 +923,29 @@ function EquipmentDialog({ equipment, onClose, onSaved }: { equipment: AdminEqui
       toast.success(isNew ? "Equipment created." : "Equipment updated.");
       onSaved();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to save");
+      const apiErr = err as ApiError;
+      const rawFieldErrs = mapZodDetailsToFields(
+        apiErr.body && typeof apiErr.body === "object" ? (apiErr.body as { details?: unknown }).details : undefined,
+      );
+      // Map server wire names back to form field names.
+      const EQUIP_SERVER_ALIASES: Record<string, string> = { pricePerNightGbp: "priceGbp" };
+      const fieldErrs: FieldErrors = {};
+      for (const [k, msg] of Object.entries(rawFieldErrs)) {
+        const key = EQUIP_SERVER_ALIASES[k] ?? k;
+        if (!fieldErrs[key]) fieldErrs[key] = msg;
+      }
+      if (Object.keys(fieldErrs).length > 0) {
+        setErrors(mergeErrors(liveErrors, fieldErrs));
+        setTouched(
+          Object.keys(values).reduce<Record<string, boolean>>((acc, k) => {
+            acc[k] = true;
+            return acc;
+          }, {}),
+        );
+        toast.error("Please fix the highlighted fields.");
+      } else {
+        toast.error(apiErr.message || "Failed to save");
+      }
     } finally {
       setSaving(false);
     }
@@ -574,52 +962,160 @@ function EquipmentDialog({ equipment, onClose, onSaved }: { equipment: AdminEqui
           {isNew && (
             <div className="sm:col-span-2">
               <Label htmlFor="eid">ID (URL slug, e.g. 3-person-tent)</Label>
-              <Input id="eid" value={id} onChange={(e) => setId(e.target.value)} placeholder="3-person-tent" className="mt-1 font-mono text-sm" />
+              <Input
+                id="eid"
+                value={id}
+                onChange={(e) => setId(e.target.value)}
+                onBlur={() => markTouched("id")}
+                placeholder="3-person-tent"
+                className={cn("mt-1 font-mono text-sm", errFor("id") && "border-rose-500 focus-visible:ring-rose-500")}
+                aria-invalid={!!errFor("id")}
+                aria-describedby={errFor("id") ? "eid-err" : undefined}
+              />
+              <FieldError id="eid-err" message={errFor("id")} />
             </div>
           )}
           <div className="sm:col-span-2">
             <Label htmlFor="ename">Name</Label>
-            <Input id="ename" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
+            <Input
+              id="ename"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => markTouched("name")}
+              className={fieldClass(!!errFor("name"))}
+              aria-invalid={!!errFor("name")}
+              aria-describedby={errFor("name") ? "ename-err" : undefined}
+            />
+            <FieldError id="ename-err" message={errFor("name")} />
           </div>
           <div>
             <Label htmlFor="etype">Type</Label>
-            <select id="etype" value={type} onChange={(e) => setType(e.target.value)} className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            <select
+              id="etype"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              onBlur={() => markTouched("type")}
+              className={cn(
+                "mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                errFor("type") && "border-rose-500 focus-visible:ring-rose-500",
+              )}
+              aria-invalid={!!errFor("type")}
+              aria-describedby={errFor("type") ? "etype-err" : undefined}
+            >
               {EQUIP_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
+            <FieldError id="etype-err" message={errFor("type")} />
           </div>
           <div>
             <Label htmlFor="eloc">Location</Label>
-            <Input id="eloc" value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1" />
+            <Input
+              id="eloc"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              onBlur={() => markTouched("location")}
+              className={fieldClass(!!errFor("location"))}
+              aria-invalid={!!errFor("location")}
+              aria-describedby={errFor("location") ? "eloc-err" : undefined}
+            />
+            <FieldError id="eloc-err" message={errFor("location")} />
           </div>
           <div>
             <Label htmlFor="ecap">Capacity (people)</Label>
-            <Input id="ecap" type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} className="mt-1" />
+            <Input
+              id="ecap"
+              type="number"
+              min="1"
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+              onBlur={() => markTouched("capacity")}
+              className={fieldClass(!!errFor("capacity"))}
+              aria-invalid={!!errFor("capacity")}
+              aria-describedby={errFor("capacity") ? "ecap-err" : undefined}
+            />
+            <FieldError id="ecap-err" message={errFor("capacity")} />
           </div>
           <div>
             <Label htmlFor="eprice">Price per night (GBP)</Label>
-            <Input id="eprice" type="number" step="0.01" value={priceGbp} onChange={(e) => setPriceGbp(e.target.value)} className="mt-1" />
+            <Input
+              id="eprice"
+              type="number"
+              step="0.01"
+              min="0"
+              value={priceGbp}
+              onChange={(e) => setPriceGbp(e.target.value)}
+              onBlur={() => markTouched("priceGbp")}
+              className={fieldClass(!!errFor("priceGbp"))}
+              aria-invalid={!!errFor("priceGbp")}
+              aria-describedby={errFor("priceGbp") ? "eprice-err" : undefined}
+            />
+            <FieldError id="eprice-err" message={errFor("priceGbp")} />
           </div>
           <div>
             <Label htmlFor="estock">Stock (units)</Label>
-            <Input id="estock" type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="mt-1" />
+            <Input
+              id="estock"
+              type="number"
+              min="0"
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              onBlur={() => markTouched("stock")}
+              className={fieldClass(!!errFor("stock"))}
+              aria-invalid={!!errFor("stock")}
+              aria-describedby={errFor("stock") ? "estock-err" : undefined}
+            />
+            <FieldError id="estock-err" message={errFor("stock")} />
           </div>
           {isNew && (
-            <div className="sm:col-span-2">
-              <Label htmlFor="eimg">Image URL</Label>
-              <Input id="eimg" value={image} onChange={(e) => setImage(e.target.value)} className="mt-1" placeholder="/images/equipment-name.jpg" />
-            </div>
+            <ImageUploader
+              label="Cover image"
+              value={image}
+              onChange={(url) => { setImage(url); markTouched("image"); }}
+              onBlur={() => markTouched("image")}
+              bucket="equipment"
+              folder={id || "draft"}
+              fieldId="eimg"
+              error={errFor("image")}
+              errorId="eimg-err"
+            />
           )}
           <div className="sm:col-span-2">
             <Label htmlFor="eamens">Amenities / features (comma separated)</Label>
-            <Input id="eamens" value={amenities} onChange={(e) => setAmenities(e.target.value)} className="mt-1" />
+            <Input
+              id="eamens"
+              value={amenities}
+              onChange={(e) => setAmenities(e.target.value)}
+              onBlur={() => markTouched("amenities")}
+              className={fieldClass(!!errFor("amenities"))}
+              aria-invalid={!!errFor("amenities")}
+              aria-describedby={errFor("amenities") ? "eamens-err" : undefined}
+            />
+            <FieldError id="eamens-err" message={errFor("amenities")} />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="esummary">Summary</Label>
-            <Input id="esummary" value={summary} onChange={(e) => setSummary(e.target.value)} className="mt-1" />
+            <Input
+              id="esummary"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              onBlur={() => markTouched("summary")}
+              className={fieldClass(!!errFor("summary"))}
+              aria-invalid={!!errFor("summary")}
+              aria-describedby={errFor("summary") ? "esummary-err" : undefined}
+            />
+            <FieldError id="esummary-err" message={errFor("summary")} />
           </div>
           <div className="sm:col-span-2">
             <Label htmlFor="edesc">Description</Label>
-            <Textarea id="edesc" value={description} onChange={(e) => setDescription(e.target.value)} className="mt-1 min-h-[120px]" />
+            <Textarea
+              id="edesc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onBlur={() => markTouched("description")}
+              className={fieldClass(!!errFor("description"))}
+              aria-invalid={!!errFor("description")}
+              aria-describedby={errFor("description") ? "edesc-err" : undefined}
+            />
+            <FieldError id="edesc-err" message={errFor("description")} />
           </div>
         </div>
         <DialogFooter className="gap-2">

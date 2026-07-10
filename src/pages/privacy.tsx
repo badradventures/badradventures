@@ -93,7 +93,7 @@ export default function PrivacyPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-stone-600">
             <p><strong>Data Controller:</strong> Badr Adventures UK</p>
-            <p><strong>Contact:</strong> jefferygo0o@gmail.com</p>
+            <p><strong>Contact:</strong> enquiries@badradventures.co.uk</p>
             <p><strong>ICO Registration:</strong> We are not required to register with the ICO because we do not process automated decisions or large-scale profiling. However, we follow all GDPR obligations as a matter of good practice.</p>
           </CardContent>
         </Card>
@@ -165,7 +165,7 @@ export default function PrivacyPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-stone-600">
-            <p>You have the following rights. To exercise any of them, contact us at jefferygo0o@gmail.com.</p>
+            <p>You have the following rights. To exercise any of them, contact us at enquiries@badradventures.co.uk.</p>
             <ul className="space-y-2">
               <li><strong>Right of access (art. 15):</strong> Request a copy of all personal data we hold about you.</li>
               <li><strong>Right to rectification (art. 16):</strong> Correct any inaccurate or incomplete data.</li>
@@ -252,7 +252,7 @@ export default function PrivacyPage() {
               <li><strong>Data Processing Agreements (Article 28)</strong> — signed with all processors.</li>
               <li><strong>Stripe</strong> is certified under the UK-US Data Bridge, which the UK Government recognises as providing adequate protections.</li>
             </ul>
-            <p>If you would like a copy of the relevant safeguards, contact us at jefferygo0o@gmail.com.</p>
+            <p>If you would like a copy of the relevant safeguards, contact us at enquiries@badradventures.co.uk.</p>
           </CardContent>
         </Card>
 
@@ -290,7 +290,7 @@ export default function PrivacyPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-stone-600">
             <p>Our services are intended for individuals aged <strong>18 and over</strong>. Hikes may welcome participants as young as 11 when accompanied by a parent or guardian, but the person making the booking must be an adult.</p>
-            <p>We do not knowingly collect personal data from children under 18. If you believe a child has provided us with personal data without parental consent, please contact us immediately at jefferygo0o@gmail.com so we can investigate and delete the data.</p>
+            <p>We do not knowingly collect personal data from children under 18. If you believe a child has provided us with personal data without parental consent, please contact us immediately at enquiries@badradventures.co.uk so we can investigate and delete the data.</p>
           </CardContent>
         </Card>
 
@@ -303,7 +303,7 @@ export default function PrivacyPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-stone-600">
             <p>We are a small business and are <strong>not required by law to appoint a Data Protection Officer (DPO)</strong>. However, all data protection matters are handled directly by the business owner, who is responsible for overseeing GDPR compliance.</p>
-            <p>For any data protection enquiries, contact: <a href="mailto:jefferygo0o@gmail.com" className="text-pine underline">jefferygo0o@gmail.com</a>.</p>
+            <p>For any data protection enquiries, contact: <a href="mailto:enquiries@badradventures.co.uk" className="text-pine underline">enquiries@badradventures.co.uk</a>.</p>
           </CardContent>
         </Card>
 
