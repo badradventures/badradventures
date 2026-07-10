@@ -845,7 +845,8 @@ export function mountRoutes(app: Hono) {
       await sendContactEmail(body);
       return c.json({ ok: true });
     } catch (err) {
-      return handleError(err);
+      console.error("[contact] error:", err);
+      return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
     }
   });
 
