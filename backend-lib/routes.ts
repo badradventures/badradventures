@@ -19,6 +19,7 @@ import {
   adminDeleteUser,
   clearSessionCookie,
   isSecureFromContext,
+  readSessionAsync,
   requireAdmin,
   requireUser,
   setSessionCookie,
@@ -831,7 +832,6 @@ export function mountRoutes(app: Hono) {
 
   app.post("/api/contact", async (c) => {
     try {
-      const { readSessionAsync } = await import("./auth");
       const session = await readSessionAsync(c);
       const body = contactSchema.parse(await c.req.json());
       await contactMessageInsert({

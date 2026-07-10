@@ -857,7 +857,10 @@ export async function contactMessageInsert(input: {
   consentedAt?: number;
   policyVersion?: string;
 }): Promise<void> {
-  const row = {
+  // Some older contact_messages tables don't have consented_at or
+  // policy_version columns. Try the full row first, then fall back to
+  // a minimal insert that omits the optional columns.
+  const fullRow = {
     name: input.name,
     email: input.email,
     subject: input.subject,
@@ -866,7 +869,19 @@ export async function contactMessageInsert(input: {
     consented_at: new Date(input.consentedAt ?? Date.now()).toISOString(),
     policy_version: input.policyVersion ?? "2026-06",
   };
-  const { error } = await supabaseAdmin().from("contact_messages").insert(row);
+  const { error } = await supabaseAdmin().from("contact_messages").insert(fullRow);
+  if (error && /consented_at|policy_version|user_id|column/i.test(error.message)) {
+    const fallback: Record<string, unknown> = {
+      name: input.name,
+      email: input.email,
+      subject: input.subject,
+      message: input.message,
+    };
+    if (input.userId !== null) fallback.user_id = input.userId;
+    const { error: err2 } = await supabaseAdmin().from("contact_messages").insert(fallback);
+    if (err2) throw new Error(err2.message);
+    return;
+  }
   if (error) throw new Error(error.message);
 }
 
