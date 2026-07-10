@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 const MAX_BYTES = 1400 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -41,10 +42,21 @@ async function uploadImage(file: File, bucket: Bucket, folder: string): Promise<
   fd.append("file", file);
   fd.append("kind", bucket);
   if (folder) fd.append("folder", folder);
+
+  const headers: Record<string, string> = {};
+  try {
+    const { data } = await supabase().auth.getSession();
+    const token = data.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch {
+    // No Supabase session — let the server enforce auth.
+  }
+
   const res = await fetch("/api/admin/upload", {
     method: "POST",
     body: fd,
     credentials: "include",
+    headers,
   });
   const text = await res.text();
   let body: { url?: string; error?: string } = {};
