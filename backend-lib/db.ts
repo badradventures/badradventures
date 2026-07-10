@@ -34,6 +34,8 @@ export type HikeRow = {
   guide: string;
   stripe_product_id?: string | null;
   stripe_price_id?: string | null;
+  publish_to_eventbrite?: boolean;
+  eventbrite_event_id?: string | null;
 };
 
 type HikeDb = {
@@ -55,6 +57,8 @@ type HikeDb = {
   guide: string;
   stripe_product_id: string | null;
   stripe_price_id: string | null;
+  publish_to_eventbrite: boolean | null;
+  eventbrite_event_id: string | null;
 };
 
 function rowToHike(r: HikeDb): HikeRow {
@@ -77,6 +81,8 @@ function rowToHike(r: HikeDb): HikeRow {
     guide: r.guide,
     stripe_product_id: r.stripe_product_id,
     stripe_price_id: r.stripe_price_id,
+    publish_to_eventbrite: r.publish_to_eventbrite ?? false,
+    eventbrite_event_id: r.eventbrite_event_id,
   };
 }
 
@@ -144,6 +150,8 @@ export async function insertHike(input: HikeInput): Promise<void> {
     guide: input.guide,
     stripe_product_id: input.stripe_product_id ?? null,
     stripe_price_id: input.stripe_price_id ?? null,
+    publish_to_eventbrite: input.publish_to_eventbrite ?? false,
+    eventbrite_event_id: input.eventbrite_event_id ?? null,
   };
   const { error } = await supabaseAdmin().from("hikes").insert(row);
   if (error) throw new Error(error.message);
@@ -172,6 +180,8 @@ export async function updateHike(
   if (patch.price_pence !== undefined) row.price_pence = patch.price_pence;
   if (patch.stripe_product_id !== undefined) row.stripe_product_id = patch.stripe_product_id;
   if (patch.stripe_price_id !== undefined) row.stripe_price_id = patch.stripe_price_id;
+  if (patch.publish_to_eventbrite !== undefined) row.publish_to_eventbrite = patch.publish_to_eventbrite;
+  if (patch.eventbrite_event_id !== undefined) row.eventbrite_event_id = patch.eventbrite_event_id;
   if (Object.keys(row).length === 0) return;
   const { error } = await supabaseAdmin().from("hikes").update(row).eq("id", id);
   if (error) throw new Error(error.message);

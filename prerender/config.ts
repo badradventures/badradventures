@@ -14,6 +14,8 @@ import MuslimHikingUkPage from "@/pages/muslim-hiking-uk";
 import MuslimHikingBeginnersPage from "@/pages/muslim-hiking-beginners";
 import MuslimHikingWomenPage from "@/pages/muslim-hiking-women";
 import MuslimHikingNearMePage from "@/pages/muslim-hiking-near-me";
+import MuslimCampingUkPage from "@/pages/muslim-camping-uk";
+import FamilyHikingPage from "@/pages/family-hiking";
 import BlogIndexPage from "@/pages/blog-index";
 import BlogPostPage from "@/pages/blog-post";
 import AboutPage from "@/pages/about";
@@ -496,14 +498,17 @@ export const ROUTES: RouteConfig[] = [
     path: "/blog/family-friendly-hikes-muslim-families-uk",
     Page: BlogPostPage,
     seo: {
-      title: "The Best Family-Friendly Hikes for Muslim Families in the UK",
+      title: "Family Friendly Hiking UK: Best Walks for Muslim Families & Kids",
       description:
-        "Six short, pushchair-friendly, pram-accessible, and genuinely fun hikes for Muslim families with young children — from Grizedale Forest to Padley Gorge, with prayer-friendly stops marked on the route.",
+        "A complete guide to family friendly hiking for Muslim families in the UK. Six pushchair-friendly, prayer-friendly walks in the Lake District, Peak District, Snowdonia and the South Downs — with halal food stops, short distances, and routes sized for kids aged 4 to 12.",
       keywords: [
-        "family Muslim hiking",
+        "family friendly hiking",
+        "family hiking UK",
+        "family friendly hiking UK",
         "hikes with kids UK",
         "pushchair friendly walks",
         "Muslim family days out",
+        "Muslim family hiking",
       ],
       ogType: "article",
       publishedTime: "2026-06-30T08:00:00Z",
@@ -511,9 +516,9 @@ export const ROUTES: RouteConfig[] = [
     },
     jsonLd: [
       articleJsonLd({
-        headline: "The Best Family-Friendly Hikes for Muslim Families in the UK",
+        headline: "Family Friendly Hiking UK: Best Walks for Muslim Families & Kids",
         description:
-          "Six short, pushchair-friendly, pram-accessible, and genuinely fun hikes for Muslim families with young children — from Grizedale Forest to Padley Gorge, with prayer-friendly stops marked on the route.",
+          "A complete guide to family friendly hiking for Muslim families in the UK. Six pushchair-friendly, prayer-friendly walks in the Lake District, Peak District, Snowdonia and the South Downs — with halal food stops, short distances, and routes sized for kids aged 4 to 12.",
         author: "Saif Mahmood",
         publisher: "Badr Adventures UK Ltd",
         datePublished: "2026-06-30",
@@ -554,6 +559,62 @@ export const ROUTES: RouteConfig[] = [
         mainEntityOfPage: "/blog/islamic-perspective-hiking-outdoors",
       }),
       authorJsonLd(),
+    ],
+  },
+  {
+    path: "/muslim-camping/uk",
+    Page: MuslimCampingUkPage,
+    seo: {
+      title: "Muslim Camping UK | Guided Wild Camping & Halal Camping Weekends | Badr Adventures",
+      description:
+        "Muslim camping across the UK with Badr Adventures. Guided wild camping weekends, family camping trips, sisters-only camps, and halal camping in the Lake District, Peak District, Snowdonia and the Scottish Highlands. Prayer breaks, halal food, all gear provided.",
+      keywords: [
+        "Muslim camping UK",
+        "halal camping UK",
+        "Muslim wild camping",
+        "Muslim camping trips UK",
+        "sisters only camping UK",
+        "family camping UK Muslim",
+        "guided camping weekend UK",
+        "Muslim camping Lake District",
+        "halal camping weekend",
+        "Muslim camping group UK",
+      ],
+      ogType: "website",
+    },
+    jsonLd: [
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Muslim Camping UK", path: "/muslim-camping/uk" },
+      ]),
+    ],
+  },
+  {
+    path: "/family-hiking",
+    Page: FamilyHikingPage,
+    seo: {
+      title: "Family Hiking UK | Muslim Family-Friendly Hikes & Adventures | Badr Adventures",
+      description:
+        "Family-friendly Muslim hiking across the UK. Short, pushchair-friendly walks, kid-safe mountain hikes, family camping weekends, and prayer-friendly routes designed for families with children of all ages. Lake District, Peak District, Snowdonia.",
+      keywords: [
+        "family hiking UK",
+        "family friendly hiking",
+        "Muslim family hiking",
+        "family hiking Lake District",
+        "family hiking Peak District",
+        "hiking with kids UK",
+        "Muslim family days out",
+        "pushchair friendly walks UK",
+        "family wild camping UK",
+        "kids hiking UK Muslim",
+      ],
+      ogType: "website",
+    },
+    jsonLd: [
+      breadcrumbJsonLd([
+        { name: "Home", path: "/" },
+        { name: "Family Hiking UK", path: "/family-hiking" },
+      ]),
     ],
   },
   // Catch-all 404 — included so we can index it with noindex via the page itself.

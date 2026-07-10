@@ -68,7 +68,7 @@ export function useAuth() {
 const NAV_LINKS = [
   { to: "/", label: "Home", tag: "01" },
   { to: "/hikes", label: "Hikes", tag: "02" },
-  { to: "/rent", label: "Self hire", tag: "03" },
+  { to: "/rent", label: "Self Hire", tag: "03" },
   { to: "/about", label: "About", tag: "04" },
   { to: "/contact", label: "Contact", tag: "05" },
 ];
@@ -393,6 +393,11 @@ export function SiteShell({ children }: { children: ReactNode }) {
                 <li>
                   <Link to="/about" className="text-paper/80 hover:text-amber-200">
                     About us
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/blog" className="text-paper/80 hover:text-amber-200">
+                    Blog
                   </Link>
                 </li>
                 <li>

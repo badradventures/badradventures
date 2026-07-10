@@ -225,6 +225,22 @@ export default function MuslimHikingUkPage() {
         </div>
       </section>
 
+      {/* Cross-link to camping */}
+      <section className="border-b border-ink/10 bg-paper-2/40 py-8">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-sm text-ink-2">
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-rust">Also from Badr: </span>
+            <Link to="/muslim-camping/uk" className="font-medium text-ink underline underline-offset-2 hover:text-rust">
+              Muslim Camping UK
+            </Link>
+            <span className="mx-2 text-ink-3">·</span>
+            <Link to="/family-hiking" className="font-medium text-ink underline underline-offset-2 hover:text-rust">
+              Family-Friendly Hiking
+            </Link>
+          </p>
+        </div>
+      </section>
+
       {/* Intro paragraph for SEO / AEO */}
       <section className="border-b border-ink/10 py-16">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">

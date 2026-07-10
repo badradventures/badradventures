@@ -21,6 +21,9 @@ const KEYWORDS = [
   "muslim hikers",
   "halal hiking",
   "islamic hiking",
+  "muslim camping",
+  "family hiking",
+  "family friendly",
 ];
 const SUPPORT = /^\/(privacy|cookies|terms|refund|contact|404|admin|sign-)/;
 

@@ -104,6 +104,8 @@ type AdminHike = {
   hero: string;
   tags: string[];
   guide: string;
+  publishToEventbrite?: boolean;
+  eventbriteEventId?: string | null;
 };
 
 type AdminEquipment = {
@@ -442,13 +444,14 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
   const [hero, setHero] = useState(isNew ? "" : hike.hero);
   const [guide, setGuide] = useState(isNew ? "" : hike.guide);
   const [tags, setTags] = useState(isNew ? "" : hike.tags.join(", "));
+  const [publishToEventbrite, setPublishToEventbrite] = useState(isNew ? false : (hike as any).publishToEventbrite ?? false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const values = useMemo(
-    () => ({ id, title, location, region, date, duration, difficulty, priceGbp, spotsTotal, summary, description, image, hero, guide, tags }),
-    [id, title, location, region, date, duration, difficulty, priceGbp, spotsTotal, summary, description, image, hero, guide, tags],
+    () => ({ id, title, location, region, date, duration, difficulty, priceGbp, spotsTotal, summary, description, image, hero, guide, tags, publishToEventbrite }),
+    [id, title, location, region, date, duration, difficulty, priceGbp, spotsTotal, summary, description, image, hero, guide, tags, publishToEventbrite],
   );
 
   function validateHike(v: typeof values, requireAll: boolean): FieldErrors {
@@ -542,6 +545,7 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
             hero: hero.trim() || image.trim(),
             guide: guide.trim(),
             tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+            publishToEventbrite,
           }
         : {
             title: title.trim(),
@@ -554,6 +558,7 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
             summary: summary.trim(),
             description: description.trim(),
             tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
+            publishToEventbrite,
           };
       await api(isNew ? "/api/admin/hikes" : `/api/admin/hikes/${hike.id}`, {
         method: isNew ? "POST" : "PATCH",
@@ -798,6 +803,36 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
             />
             <FieldError id="desc-err" message={errFor("description")} />
           </div>
+
+          {/* Eventbrite publish checkbox */}
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-3 rounded-lg border border-stone-200 bg-white p-4 cursor-pointer hover:bg-stone-50 transition-colors">
+              <input
+                type="checkbox"
+                checked={publishToEventbrite}
+                onChange={(e) => setPublishToEventbrite(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-stone-300 text-emerald-700 focus:ring-emerald-500"
+              />
+              <div className="flex-1 select-none">
+                <span className="text-sm font-medium text-stone-900">Publish to Eventbrite</span>
+                <p className="mt-0.5 text-xs text-stone-500">
+                  Creates a listing on Eventbrite with a ticket link back to badradventures.co.uk
+                  {hike?.eventbriteEventId && (
+                    <span className="block mt-1 text-emerald-700">
+                      ✓ Published — <a
+                        href={`https://www.eventbrite.co.uk/e/${hike.eventbriteEventId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-emerald-800"
+                        onClick={(e) => e.stopPropagation()}
+                      >View on Eventbrite &rarr;</a>
+                    </span>
+                  )}
+                </p>
+              </div>
+            </label>
+          </div>
+
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}><X className="mr-1 h-4 w-4" /> Cancel</Button>

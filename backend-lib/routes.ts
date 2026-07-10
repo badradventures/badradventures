@@ -145,6 +145,86 @@ function handleError(err: unknown): Response {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Eventbrite — publishes/updates/unpublishes a hike on Eventbrite via the
+// publish-to-eventbrite Supabase Edge Function.
+// ---------------------------------------------------------------------------
+
+function eventbriteFunctionUrl(): string | null {
+  const url = process.env.SUPABASE_URL;
+  if (!url) return null;
+  return `${url.replace(/\/$/, "")}/functions/v1/publish-to-eventbrite`;
+}
+
+function eventbriteServiceKey(): string | null {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
+}
+
+async function callEventbriteEdgeFunction(payload: unknown): Promise<{
+  ok: boolean;
+  eventbriteEventId?: string;
+  error?: string;
+}> {
+  const url = eventbriteFunctionUrl();
+  const key = eventbriteServiceKey();
+  if (!url || !key) return { ok: false, error: "Supabase not configured" };
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.json() as Record<string, unknown>;
+    if (!res.ok) {
+      return { ok: false, error: (body.error as string) ?? `HTTP ${res.status}` };
+    }
+    return {
+      ok: true,
+      eventbriteEventId: body.eventbriteEventId as string | undefined,
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function publishHikeToEventbrite(
+  hike: { id: string; title: string; location: string; region: string; date: string; duration: string; difficulty: string; summary: string; description: string; price_pence: number; image: string; guide: string },
+  existingEventbriteId?: string | null,
+): Promise<{ ok: boolean; eventbriteEventId?: string; error?: string }> {
+  const action = existingEventbriteId ? "update" : "publish";
+  return callEventbriteEdgeFunction({
+    action,
+    eventbriteEventId: existingEventbriteId || undefined,
+    hike: {
+      id: hike.id,
+      title: hike.title,
+      location: hike.location,
+      region: hike.region,
+      date: hike.date,
+      duration: hike.duration,
+      difficulty: hike.difficulty,
+      summary: hike.summary,
+      description: hike.description,
+      pricePence: hike.price_pence,
+      image: hike.image,
+      guide: hike.guide,
+    },
+  });
+}
+
+async function unpublishHikeFromEventbrite(
+  eventbriteEventId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  return callEventbriteEdgeFunction({
+    action: "unpublish",
+    eventbriteEventId,
+  });
+}
+
 // ---------- mount ----------
 
 export function mountRoutes(app: Hono) {
@@ -892,6 +972,7 @@ export function mountRoutes(app: Hono) {
     hero: z.string().optional().default(""),
     tags: z.array(z.string()).optional().default([]),
     guide: z.string().min(1),
+    publishToEventbrite: z.boolean().optional().default(false),
   });
 
   app.get("/api/admin/hikes", async (c) => {
@@ -930,6 +1011,7 @@ export function mountRoutes(app: Hono) {
         hero: body.hero || body.image,
         tags: body.tags,
         guide: body.guide,
+        publish_to_eventbrite: body.publishToEventbrite ?? false,
       });
 
       // Sync to Stripe
@@ -958,6 +1040,32 @@ export function mountRoutes(app: Hono) {
             stripe_product_id: result.productId,
             stripe_price_id: result.priceId ?? null,
           });
+        }
+      }
+
+      // Publish to Eventbrite if requested
+      if (body.publishToEventbrite) {
+        const ebResult = await publishHikeToEventbrite({
+          id: body.id,
+          title: body.title,
+          location: body.location,
+          region: body.region,
+          date: body.date,
+          duration: body.duration,
+          difficulty: body.difficulty,
+          summary: body.summary,
+          description: body.description,
+          price_pence: Math.round(body.priceGbp * 100),
+          image: body.image,
+          guide: body.guide,
+        });
+        if (ebResult.ok && ebResult.eventbriteEventId) {
+          await updateHike(body.id, {
+            eventbrite_event_id: ebResult.eventbriteEventId,
+          });
+        } else {
+          console.error("[eventbrite] publish failed:", ebResult.error);
+          // Don't block the response — the hike was saved in DB
         }
       }
 
@@ -991,6 +1099,11 @@ export function mountRoutes(app: Hono) {
       const hikeToDelete = await loadHikeById(id);
       await removeHikeFromStripe(hikeToDelete?.stripe_product_id, id);
 
+      // Unpublish from Eventbrite if published
+      if (hikeToDelete?.eventbrite_event_id) {
+        await unpublishHikeFromEventbrite(hikeToDelete.eventbrite_event_id);
+      }
+
       const ok = await deleteHike(id);
       if (!ok) return c.json({ error: "Hike not found" }, 404);
       return c.json({ ok: true });
@@ -1014,6 +1127,7 @@ export function mountRoutes(app: Hono) {
     hero: z.string().optional(),
     tags: z.array(z.string()).optional(),
     guide: z.string().optional(),
+    publishToEventbrite: z.boolean().optional(),
   });
 
   app.patch("/api/admin/hikes/:id", async (c) => {
@@ -1059,6 +1173,41 @@ export function mountRoutes(app: Hono) {
               stripe_product_id: result.productId,
               stripe_price_id: result.priceId ?? null,
             });
+          }
+        }
+      }
+
+      // Publish/update/unpublish on Eventbrite
+      if (body.publishToEventbrite !== undefined) {
+        const fresh = await loadHikeById(id);
+        if (fresh) {
+          if (body.publishToEventbrite) {
+            // Create or update Eventbrite event
+            const ebResult = await publishHikeToEventbrite({
+              id: fresh.id,
+              title: fresh.title,
+              location: fresh.location,
+              region: fresh.region,
+              date: fresh.date,
+              duration: fresh.duration,
+              difficulty: fresh.difficulty,
+              summary: fresh.summary,
+              description: fresh.description,
+              price_pence: fresh.price_pence,
+              image: fresh.image,
+              guide: fresh.guide,
+            }, fresh.eventbrite_event_id ?? undefined);
+            if (ebResult.ok && ebResult.eventbriteEventId) {
+              await updateHike(id, {
+                eventbrite_event_id: ebResult.eventbriteEventId,
+              });
+            } else {
+              console.error("[eventbrite] publish/update failed:", ebResult.error);
+            }
+          } else if (fresh.eventbrite_event_id) {
+            // Unpublish from Eventbrite
+            await unpublishHikeFromEventbrite(fresh.eventbrite_event_id);
+            await updateHike(id, { eventbrite_event_id: null });
           }
         }
       }

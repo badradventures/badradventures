@@ -310,6 +310,12 @@ async function writeLlmsTxt() {
     "- [Muslim Hiking Near Me UK](https://badradventures.co.uk/muslim-hiking/near-me): find Muslim hiking trips near you — London, Manchester, Birmingham, Glasgow and more.",
   );
   lines.push(
+    "- [Muslim Camping UK](https://badradventures.co.uk/muslim-camping/uk): guided wild camping weekends, family camping trips, and halal camping across the UK — Lake District, Peak District, Snowdonia.",
+  );
+  lines.push(
+    "- [Family Hiking UK](https://badradventures.co.uk/family-hiking): Muslim family-friendly hikes, short walks with kids, and family camping weekends across the UK.",
+  );
+  lines.push(
     "- [Muslim Hiking for Beginners](https://badradventures.co.uk/muslim-hiking/beginners): start your first UK mountain, from zero to summit, with no experience needed.",
   );
   lines.push(

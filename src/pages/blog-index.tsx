@@ -89,19 +89,22 @@ export const BLOG_POSTS: BlogPostMeta[] = [
   },
   {
     slug: "family-friendly-hikes-muslim-families-uk",
-    title: "The Best Family-Friendly Hikes for Muslim Families in the UK",
+    title: "Family Friendly Hiking UK: The Best Walks for Muslim Families",
     description:
-      "Six short, pushchair-friendly, pram-accessible, and genuinely fun hikes for Muslim families with young children — from Grizedale Forest to Padley Gorge, with prayer-friendly stops marked on the route.",
+      "A complete guide to family friendly hiking for Muslim families in the UK. Six pushchair-friendly, prayer-friendly walks in the Lake District, Peak District, Snowdonia and the South Downs — with halal food stops, short distances, and routes sized for kids aged 4 to 12.",
     date: "2026-06-30",
     readMinutes: 6,
     category: "Family",
     excerpt:
-      "Hiking with kids under five is a different sport. These six routes are short, shaded, and have a cafe, toilets, and a flat spot for prayer within thirty minutes of the car park.",
+      "Family hiking with young kids is a different sport. These six routes are short, shaded, and have a cafe, toilets, and a flat spot for prayer within thirty minutes of the car park.",
     keywords: [
-      "family Muslim hiking",
+      "family friendly hiking",
+      "family hiking UK",
+      "family friendly hiking UK",
       "hikes with kids UK",
       "pushchair friendly walks",
       "Muslim family days out",
+      "Muslim family hiking",
     ],
   },
   {

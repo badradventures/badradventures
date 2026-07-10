@@ -10,12 +10,12 @@
 
 | Metric | Status |
 |---|---|
-| SSR Prerender (all pages crawlable) | ✅ 22 routes |
-| `llms.txt` for AI crawlers | ✅ 40+ links |
+| SSR Prerender (all pages crawlable) | ✅ 24 routes |
+| `llms.txt` for AI crawlers | ✅ 42+ links |
 | robots.txt (AI bots allowed) | ✅ GPTBot, Perplexity, Claude, CCBot, Google-Extended |
 | Sitemap (static + blog) | ✅ 4 sitemaps in index |
 | JSON-LD: LocalBusiness | ✅ Registered office, geo, area served, opening hours |
-| JSON-LD: FAQPage | ✅ On all 4 hub pages + homepage |
+| JSON-LD: FAQPage | ✅ On all 7 hub pages + homepage |
 | JSON-LD: Article / BlogPosting | ✅ On all 6 blog posts |
 | JSON-LD: Website (search action) | ✅ |
 | JSON-LD: WebSite | ✅ |
@@ -27,18 +27,21 @@
 | Canonical URLs | ✅ Every page |
 | Keyword meta tags | ✅ Every content page |
 | Google Search Console verified | ✅ |
-| Content: Pillar pages | 5 pages (main, UK, beginners, women, near-me) |
+| Content: Pillar pages | 7 pages (main, UK, beginners, women, near-me, **camping**, **family**) |
 | Content: Blog posts | 6 posts (prayer, beginners guide, women's groups, halal food, family, Islamic perspective) |
 
 ---
 
-## Phase 1: Finish Content Scaffolding (Done This Session)
+## Phase 1: Content Scaffolding (Done — 10 July 2026)
 
 ### ✅ What was just built
-- `/muslim-hiking/near-me` — new pillar page targeting 12 city-level "near me" keywords
-- All 5 Muslim Hiking pillar pages now prerendered in sitemap
-- `llms.txt` updated with all new pages
-- SEO checker passing 22/22 routes
+- `/muslim-camping/uk` — new pillar page targeting "muslim camping uk", "halal camping UK", "wild camping Muslim"
+- `/family-hiking` — new pillar page targeting "family hiking UK", "family friendly hiking", "hiking with kids UK"
+- Both pages prerendered in sitemap, with FAQ schema, speakable blocks, and GEO-optimised answer sections
+- `llms.txt` updated with new pages
+- Homepage meta updated to include camping + family keywords
+- Internal cross-links from `/muslim-hiking/uk` → both new pages
+- SEO checker updated to 24/24 routes
 
 ### 🔜 Next pages to create
 | Page | Target Keywords | Priority |
