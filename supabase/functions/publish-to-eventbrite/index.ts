@@ -408,6 +408,7 @@ function buildEventPayload(hike: {
 
 async function publishEvent(
   hike: Parameters<typeof buildEventPayload>[0],
+  skipImage?: boolean,
 ) {
 
   const venueId =
@@ -418,7 +419,7 @@ async function publishEvent(
 
 
   const logoId =
-    hike.image
+    !skipImage && hike.image
       ? await uploadImage(hike.image).catch((err) => {
           console.warn("Image upload failed, proceeding without logo", err);
           return undefined;
@@ -515,10 +516,11 @@ async function publishEvent(
 async function updateEvent(
   eventId: string,
   hike: Parameters<typeof buildEventPayload>[0],
+  skipImage?: boolean,
 ) {
 
   const logoId =
-    hike.image
+    !skipImage && hike.image
       ? await uploadImage(hike.image).catch((err) => {
           console.warn("Image upload failed during update, proceeding without logo", err);
           return undefined;
@@ -569,32 +571,56 @@ async function updateEvent(
   console.log("priceGbp normalised:", priceGbp);
 
 
-  // Create or update ticket class on every update (in case it was missing)
+  // Update existing ticket classes (GET existing ones and PATCH, since POST creates a new one every time)
   try {
-    const ticketPayload: Record<string, unknown> = {
-      ticket_class: {
-        name: "General Admission",
-        quantity_total: hike.spotsTotal,
-      },
-    };
+    const existingTicketClasses = await api(
+      "GET",
+      `/events/${eventId}/ticket_classes/`,
+    );
+    const classes = existingTicketClasses.ticket_classes as Array<Record<string, unknown>> | undefined;
 
-    // Paid ticket → cost as string "GBP,500"; free ticket → free flag, no cost
     const cost = buildCost(priceGbp);
+    const ticketClassPatch: Record<string, unknown> = {};
     if (cost) {
-      (ticketPayload.ticket_class as Record<string, unknown>).cost = cost;
+      ticketClassPatch.cost = cost;
+      ticketClassPatch.free = false;
     } else {
-      (ticketPayload.ticket_class as Record<string, unknown>).free = true;
+      ticketClassPatch.free = true;
+      ticketClassPatch.cost = null;
     }
 
-    console.log("Ticket class payload:", JSON.stringify(ticketPayload, null, 2));
+    if (classes && classes.length > 0) {
+      // Patch the first ticket class
+      const existingId = classes[0].id;
+      console.log("Patching existing ticket class:", existingId);
+      await api(
+        "PATCH",
+        `/events/${eventId}/ticket_classes/${existingId}/`,
+        { ticket_class: ticketClassPatch },
+      );
+    } else {
+      // Create a new one
+      console.log("No existing ticket class found, creating one");
+      const ticketPayload: Record<string, unknown> = {
+        ticket_class: {
+          name: "General Admission",
+          quantity_total: hike.spotsTotal,
+          ...ticketClassPatch,
+        },
+      };
+      await api(
+        "POST",
+        `/events/${eventId}/ticket_classes/`,
+        ticketPayload,
+      );
+    }
 
-    await api(
-      "POST",
-      `/events/${eventId}/ticket_classes/`,
-      ticketPayload,
+    console.log("Ticket class updated successfully");
+  } catch (err) {
+    console.warn(
+      "Ticket class update skipped",
+      err,
     );
-  } catch {
-    // Ticket class may already exist — that's fine
   }
 
 
@@ -603,8 +629,11 @@ async function updateEvent(
       "POST",
       `/events/${eventId}/publish/`,
     );
-  } catch {
-
+  } catch (err) {
+    console.warn(
+      "Publish skipped (event may already be published)",
+      err,
+    );
   }
 
 
@@ -666,6 +695,7 @@ interface PublishRequest {
 
 
   eventbriteEventId?: string;
+  skip_image?: boolean;
 }
 
 
@@ -730,6 +760,7 @@ function validate(
 
     result.hike =
       r.hike as PublishRequest["hike"];
+    result.skip_image = r.skip_image as boolean | undefined;
 
   }
 
@@ -808,6 +839,7 @@ Deno.serve(async (req) => {
         eventbriteEventId =
           await publishEvent(
             input.hike!,
+            input.skip_image,
           );
 
         break;
@@ -820,6 +852,7 @@ Deno.serve(async (req) => {
           await updateEvent(
             input.eventbriteEventId!,
             input.hike!,
+            input.skip_image,
           );
 
         break;

@@ -18,3 +18,4 @@ verify_jwt = false
 
 [functions.publish-to-eventbrite]
 verify_jwt = false
+timeout_ms = 300000

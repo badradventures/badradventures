@@ -160,14 +160,29 @@ function eventbriteServiceKey(): string | null {
   return process.env.SUPABASE_SERVICE_ROLE_KEY ?? null;
 }
 
-async function callEventbriteEdgeFunction(payload: unknown): Promise<{
-  ok: boolean;
-  eventbriteEventId?: string;
-  error?: string;
-}> {
+async function callEventbriteEdgeFunction(
+  opts: {
+    action: string;
+    eventbriteEventId?: string;
+    hike?: Record<string, unknown>;
+    skip_image?: boolean;
+  },
+): Promise<{ ok: boolean; eventbriteEventId?: string; error?: string }> {
   const url = eventbriteFunctionUrl();
   const key = eventbriteServiceKey();
-  if (!url || !key) return { ok: false, error: "Supabase not configured" };
+
+  if (!url || !key) {
+    return { ok: false, error: "Eventbrite function URL or service key not configured" };
+  }
+
+  const body: Record<string, unknown> = {
+    action: opts.action,
+    hike: opts.hike,
+    eventbriteEventId: opts.eventbriteEventId,
+  };
+  if (opts.skip_image) {
+    body.skip_image = true;
+  }
 
   try {
     const res = await fetch(url, {
@@ -176,7 +191,7 @@ async function callEventbriteEdgeFunction(payload: unknown): Promise<{
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`,
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     });
     const body = await res.json() as Record<string, unknown>;
     if (!res.ok) {
@@ -194,11 +209,13 @@ async function callEventbriteEdgeFunction(payload: unknown): Promise<{
 async function publishHikeToEventbrite(
   hike: { id: string; title: string; location: string; region: string; date: string; duration: string; difficulty: string; summary: string; description: string; price_pence: number; image: string; guide: string; spotsTotal: number },
   existingEventbriteId?: string | null,
+  skipImage?: boolean,
 ): Promise<{ ok: boolean; eventbriteEventId?: string; error?: string }> {
   const action = existingEventbriteId ? "update" : "publish";
   return callEventbriteEdgeFunction({
     action,
     eventbriteEventId: existingEventbriteId || undefined,
+    skip_image: skipImage,
     hike: {
       id: hike.id,
       title: hike.title,
@@ -1046,20 +1063,24 @@ export function mountRoutes(app: Hono) {
 
       // Publish to Eventbrite if requested
       if (body.publishToEventbrite) {
-        const ebResult = await publishHikeToEventbrite({
-          id: body.id,
-          title: body.title,
-          location: body.location,
-          region: body.region,
-          date: body.date,
-          duration: body.duration,
-          difficulty: body.difficulty,
-          summary: body.summary,
-          description: body.description,
-          spotsTotal: body.spotsTotal,
-          price_pence: Math.round(body.priceGbp * 100),
-          image: body.image,
-          guide: body.guide,
+        const ebResult = await publishHikeToEventbrite(
+          {
+            id: body.id,
+            title: body.title,
+            location: body.location,
+            region: body.region,
+            date: body.date,
+            duration: body.duration,
+            difficulty: body.difficulty,
+            summary: body.summary,
+            description: body.description,
+            spotsTotal: body.spotsTotal,
+            price_pence: Math.round(body.priceGbp * 100),
+            image: body.image,
+            guide: body.guide,
+          },
+          undefined,
+          false,
         });
         if (ebResult.ok && ebResult.eventbriteEventId) {
           await updateHike(body.id, {
@@ -1184,22 +1205,28 @@ export function mountRoutes(app: Hono) {
         const fresh = await loadHikeById(id);
         if (fresh) {
           if (body.publishToEventbrite) {
+            // Image only needs re-uploading if the URL actually changed
+            const imageChanged = body.image !== undefined;
             // Create or update Eventbrite event
-            const ebResult = await publishHikeToEventbrite({
-              id: fresh.id,
-              title: fresh.title,
-              location: fresh.location,
-              region: fresh.region,
-              date: fresh.date,
-              duration: fresh.duration,
-              difficulty: fresh.difficulty,
-              summary: fresh.summary,
-              description: fresh.description,
-              price_pence: fresh.price_pence,
-              image: fresh.image,
-              guide: fresh.guide,
-              spotsTotal: fresh.spots_total,
-            }, fresh.eventbrite_event_id ?? undefined);
+            const ebResult = await publishHikeToEventbrite(
+              {
+                id: fresh.id,
+                title: fresh.title,
+                location: fresh.location,
+                region: fresh.region,
+                date: fresh.date,
+                duration: fresh.duration,
+                difficulty: fresh.difficulty,
+                summary: fresh.summary,
+                description: fresh.description,
+                price_pence: fresh.price_pence,
+                image: fresh.image,
+                guide: fresh.guide,
+                spotsTotal: fresh.spots_total,
+              },
+              fresh.eventbrite_event_id ?? undefined,
+              imageChanged,
+            });
             if (ebResult.ok && ebResult.eventbriteEventId) {
               await updateHike(id, {
                 eventbrite_event_id: ebResult.eventbriteEventId,
