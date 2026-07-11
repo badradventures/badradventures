@@ -1375,49 +1375,29 @@ export function mountRoutes(app: Hono) {
     }
   });
 
-  // ---- Admin image upload (Supabase Storage) ----
-  //
-  // Accepts a multipart/form-data POST with a single `file` field. Saves the
-  // file under `<bucket>/<kind>/<timestamp>-<random>.<ext>` in the
-  // `site-assets` bucket, and returns the public URL the client can stick
-  // into the hike/equipment `image` / `hero` column.
-  //
-  // `kind` is either "hikes" or "equipment" — it picks the storage folder
-  // and is enforced so we never get a tent image in the hikes folder by
-  // accident.
-  const UPLOAD_KIND_RE = /^(hikes|equipment)$/;
-  const UPLOAD_MAX_BYTES = 1400 * 1024; // 1.4 MB
-  const UPLOAD_ALLOWED_MIME = new Set([
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/gif",
-    "image/avif",
-  ]);
-  const UPLOAD_BUCKET = "site-assets";
-
+  // ---- Upload endpoint ----
   app.post("/api/admin/upload", async (c) => {
     try {
       await requireAdmin(c);
 
+      const UPLOAD_MAX_BYTES = 1400 * 1024; // 1.4 MB
+      const UPLOAD_ALLOWED_MIME = new Set([
+        "image/jpeg", "image/png", "image/webp", "image/gif", "image/avif",
+      ]);
+      const UPLOAD_BUCKET = "site-assets";
       const form = await c.req.formData();
       const rawKind = (form.get("kind") ?? c.req.query("kind") ?? "").toString();
       const kind = rawKind === "hikes" || rawKind === "equipment" ? rawKind : "";
       if (!kind) {
         return c.json(
-          { error: "kind must be either 'hikes' or 'equipment'" },
+          { error: "Upload kind is required (hikes or equipment)" },
           400,
         );
       }
-      const rawFolder = (form.get("folder") ?? "").toString();
-      const folder = rawFolder
-        .toLowerCase()
-        .replace(/[^a-z0-9-]+/g, "-")
-        .replace(/^-+|-+$/g, "")
-        .slice(0, 80) || "misc";
-      const file = form.get("file");
-      if (!(file instanceof File)) {
-        return c.json({ error: "No file uploaded (expected 'file' field)" }, 400);
+
+      const file = form.get("file") as File | null;
+      if (!file) {
+        return c.json({ error: "No file provided" }, 400);
       }
       if (file.size === 0) {
         return c.json({ error: "Uploaded file is empty" }, 400);
@@ -1428,15 +1408,32 @@ export function mountRoutes(app: Hono) {
           400,
         );
       }
-      const mime = file.type || "application/octet-stream";
+
+      let mime = file.type;
+      if (mime === "application/octet-stream" || !mime) {
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        const guess: Record<string, string> = {
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          png: "image/png",
+          webp: "image/webp",
+          avif: "image/avif",
+          gif: "image/gif",
+          svg: "image/svg+xml",
+        };
+        mime = guess[ext ?? ""] || "image/jpeg";
+      }
       if (!UPLOAD_ALLOWED_MIME.has(mime)) {
         return c.json(
-          { error: `Unsupported file type: ${mime}. Use JPEG, PNG, WebP, GIF, or AVIF.` },
+          {
+            error: `Unsupported file type: ${mime}. Allowed: ${[...UPLOAD_ALLOWED_MIME].join(", ")}`,
+          },
           400,
         );
       }
 
       const ext = mimeToExt(mime);
+      const folder = c.req.query("slug") || "general";
       const safeName = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const objectPath = `${kind}/${folder}/${safeName}`;
 
@@ -1452,13 +1449,14 @@ export function mountRoutes(app: Hono) {
         return c.json({ error: `Upload failed: ${uploadErr.message}` }, 500);
       }
 
-      const { data: pub } = supabaseAdmin().storage
-        .from(UPLOAD_BUCKET)
+      const { data: pub } = supabaseAdmin()
+        .storage.from("site-assets")
         .getPublicUrl(objectPath);
 
       return c.json({
         ok: true,
         url: pub.publicUrl,
+        previewUrl: `/api/admin/images/serve/${objectPath}`,
         path: objectPath,
         size: file.size,
         mime,
@@ -1468,8 +1466,42 @@ export function mountRoutes(app: Hono) {
     }
   });
 
+  // ---- Admin image proxy (same-origin, avoids ORB/CORB blocking) ----
+  // Proxies images from Supabase storage through the same origin so Chrome's
+  // Open Recommender Blocker doesn't block cross-origin image downloads.
+  app.get("/api/admin/images/serve/:path{.*}", async (c) => {
+    try {
+      await requireAdmin(c);
+      const fullPath = c.req.param("path") || "";
+      if (!fullPath) return c.json({ error: "Missing path" }, 400);
+
+      // Validate kind prefix
+      const kind = fullPath.split("/")[0];
+      if (!["hikes", "equipment"].includes(kind)) {
+        return c.json({ error: "Invalid image kind" }, 400);
+      }
+
+      const { data: pub } = supabaseAdmin()
+        .storage.from("site-assets")
+        .getPublicUrl(fullPath);
+
+      const res = await fetch(pub.publicUrl);
+      if (!res.ok) return c.json({ error: "Image not found" }, 404);
+
+      // Stream the image body back with proper content-type and cache headers
+      return new Response(res.body, {
+        headers: {
+          "Content-Type": res.headers.get("Content-Type") || "image/jpeg",
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   // ---- Admin image listing (Supabase Storage) ----
-  // Lists all images in a given bucket kind folder, returning public URLs.
+  // Lists all images in a given bucket kind folder, returning same-origin proxy URLs.
   // Query param: kind = "hikes" | "equipment"
   app.get("/api/admin/images", async (c) => {
     try {
@@ -1500,6 +1532,7 @@ export function mountRoutes(app: Hono) {
           return {
             name: fullPath,
             url: pub.publicUrl,
+            previewUrl: `/api/admin/images/serve/${fullPath}`,
             slug: slugMatch ? slugMatch[1] : null,
             updatedAt: o.updated_at ?? null,
           };

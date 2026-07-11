@@ -386,7 +386,7 @@ export function ImageUploader({
                     title={img.name}
                   >
                     <img
-                      src={img.url}
+                      src={img.previewUrl || img.url}
                       alt=""
                       className="h-full w-full object-cover"
                       loading="lazy"
