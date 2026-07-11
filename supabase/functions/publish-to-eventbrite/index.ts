@@ -133,7 +133,12 @@ async function uploadImage(imageUrl: string): Promise<string> {
   const fileParam = (instructions.file_parameter_name as string) ?? "file";
 
   // Step 2: Download the image from the hike URL
-  const imageRes = await fetch(imageUrl);
+  let imageRes = await fetch(imageUrl);
+  if (!imageRes.ok && imageUrl.includes("supabase.co/storage/v1/object/public/")) {
+    // Supabase public URLs without file extensions return 400 (can't determine content type).
+    // Adding ?download=1 bypasses content-type negotiation.
+    imageRes = await fetch(`${imageUrl}?download=1`);
+  }
   if (!imageRes.ok) {
     throw new Error(`Failed to download image from ${imageUrl}: ${imageRes.status}`);
   }
@@ -371,7 +376,6 @@ function buildEventPayload(hike: {
 
       name: {
         html: `${hike.title} — Badr Adventures`,
-        text: `${hike.title} — Badr Adventures`,
       },
 
 
