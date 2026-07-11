@@ -209,7 +209,7 @@ async function publishHikeToEventbrite(
       difficulty: hike.difficulty,
       summary: hike.summary,
       description: hike.description,
-      pricePence: hike.price_pence,
+      priceGbp: hike.price_pence / 100,
       image: hike.image,
       guide: hike.guide,
     },
