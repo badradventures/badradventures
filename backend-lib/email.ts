@@ -91,13 +91,20 @@ async function sendViaIonosSmtp(input: {
   fromName: string;
   replyTo?: string;
 }): Promise<boolean> {
+  const from = ionosFromAddress();
+  const to = adminEmail();
+  console.log(`[email] IONOS SMTP: sending to ${to} from ${from}`);
   try {
-    await getSmtpTransporter().sendMail({
-      from: `${input.fromName} <${ionosFromAddress()}>`,
-      to: adminEmail(),
+    const info = await getSmtpTransporter().sendMail({
+      from: `${input.fromName} <${from}>`,
+      to,
       subject: input.subject,
       text: input.body,
       replyTo: input.replyTo,
+    });
+    console.log("[email] IONOS SMTP: accepted by server", {
+      messageId: info.messageId,
+      response: info.response,
     });
     return true;
   } catch (err) {
