@@ -410,22 +410,16 @@ async function publishEvent(
   hike: Parameters<typeof buildEventPayload>[0],
   skipImage?: boolean,
 ) {
-
-  const venueId =
-    await resolveVenue(
-      hike.location,
-      hike.region,
-    );
-
-
-  const logoId =
-    !skipImage && hike.image
-      ? await uploadImage(hike.image).catch((err) => {
+  // Run venue resolution and image upload in parallel — they're independent
+  const [venueId, logoId] = await Promise.all([
+    resolveVenue(hike.location, hike.region),
+    (!skipImage && hike.image
+      ? uploadImage(hike.image).catch((err) => {
           console.warn("Image upload failed, proceeding without logo", err);
           return undefined;
         })
-      : undefined;
-
+      : Promise.resolve(undefined)),
+  ]);
 
   const payload =
     buildEventPayload(hike, logoId);
@@ -518,28 +512,25 @@ async function updateEvent(
   hike: Parameters<typeof buildEventPayload>[0],
   skipImage?: boolean,
 ) {
-
-  const logoId =
-    !skipImage && hike.image
-      ? await uploadImage(hike.image).catch((err) => {
+  // Run image upload and venue resolution in parallel — they're independent
+  const [logoId, venueId] = await Promise.all([
+    (!skipImage && hike.image
+      ? uploadImage(hike.image).catch((err) => {
           console.warn("Image upload failed during update, proceeding without logo", err);
           return undefined;
         })
-      : undefined;
-
+      : Promise.resolve(undefined)),
+    resolveVenue(hike.location, hike.region).catch((err) => {
+      console.warn("Venue update skipped", err);
+      return undefined;
+    }),
+  ]);
 
   const payload =
     buildEventPayload(hike, logoId);
 
 
   try {
-
-    const venueId =
-      await resolveVenue(
-        hike.location,
-        hike.region,
-      );
-
 
     payload.event.venue_id =
       venueId;
