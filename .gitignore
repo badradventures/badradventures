@@ -12,3 +12,5 @@ supabase/.temp/
 !supabase/functions/**/*.js
 !vite.config.js
 !scripts/**/*.js
+# Local data files
+data/
