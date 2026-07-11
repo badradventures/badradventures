@@ -192,7 +192,7 @@ async function callEventbriteEdgeFunction(payload: unknown): Promise<{
 }
 
 async function publishHikeToEventbrite(
-  hike: { id: string; title: string; location: string; region: string; date: string; duration: string; difficulty: string; summary: string; description: string; price_pence: number; image: string; guide: string },
+  hike: { id: string; title: string; location: string; region: string; date: string; duration: string; difficulty: string; summary: string; description: string; price_pence: number; image: string; guide: string; spotsTotal: number },
   existingEventbriteId?: string | null,
 ): Promise<{ ok: boolean; eventbriteEventId?: string; error?: string }> {
   const action = existingEventbriteId ? "update" : "publish";
@@ -212,6 +212,7 @@ async function publishHikeToEventbrite(
       priceGbp: hike.price_pence / 100,
       image: hike.image,
       guide: hike.guide,
+      spotsTotal: hike.spotsTotal,
     },
   });
 }
@@ -1055,6 +1056,7 @@ export function mountRoutes(app: Hono) {
           difficulty: body.difficulty,
           summary: body.summary,
           description: body.description,
+          spotsTotal: body.spotsTotal,
           price_pence: Math.round(body.priceGbp * 100),
           image: body.image,
           guide: body.guide,
@@ -1196,6 +1198,7 @@ export function mountRoutes(app: Hono) {
               price_pence: fresh.price_pence,
               image: fresh.image,
               guide: fresh.guide,
+              spotsTotal: fresh.spots_total,
             }, fresh.eventbrite_event_id ?? undefined);
             if (ebResult.ok && ebResult.eventbriteEventId) {
               await updateHike(id, {

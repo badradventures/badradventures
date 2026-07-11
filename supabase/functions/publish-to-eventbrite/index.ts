@@ -17,6 +17,22 @@ const HIKE_URL = "https://badradventures.co.uk/hikes";
 // Helpers
 // ---------------------------------------------------------------------------
 
+/// Normalise the price field — it may come in as null, undefined, string, or number.
+function normalisePrice(raw: unknown): number {
+  if (typeof raw === "number" && !Number.isNaN(raw)) return raw;
+  if (typeof raw === "string") {
+    const n = Number(raw);
+    return Number.isNaN(n) ? 0 : n;
+  }
+  return 0;
+}
+
+/// Build the cost string for a ticket class (Eventbrite V3 format: "CURRENCY,amount_in_cents").
+function buildCost(gbp: number): string | undefined {
+  if (gbp <= 0) return undefined;
+  return `GBP,${Math.round(gbp * 100)}`;
+}
+
 function token(): string {
   const t = Deno.env.get("EVENTBRITE_OAUTH_TOKEN");
 
@@ -434,6 +450,14 @@ async function publishEvent(
     String(created.id);
 
 
+  // --- Debug: log what we received ---
+  console.log("publishEvent hike:", JSON.stringify(hike, null, 2));
+  console.log("priceGbp raw:", hike.priceGbp, "| type:", typeof hike.priceGbp);
+
+  // Normalise price once, use everywhere
+  const priceGbp = normalisePrice(hike.priceGbp);
+  console.log("priceGbp normalised:", priceGbp);
+
 
   // Create ticket class
   try {
@@ -441,19 +465,18 @@ async function publishEvent(
       ticket_class: {
         name: "General Admission",
         quantity_total: hike.spotsTotal,
-        free: hike.priceGbp === 0,
-        donation: false,
-        hidden: false,
       },
     };
 
-    // Paid tickets require a cost value in base unit (pence/Cent)
-    if (hike.priceGbp > 0) {
-      (ticketPayload.ticket_class as Record<string, unknown>).cost = {
-        currency: "GBP",
-        value: Math.round(hike.priceGbp * 100),
-      };
+    // Paid ticket → cost as string "GBP,500"; free ticket → free flag, no cost
+    const cost = buildCost(priceGbp);
+    if (cost) {
+      (ticketPayload.ticket_class as Record<string, unknown>).cost = cost;
+    } else {
+      (ticketPayload.ticket_class as Record<string, unknown>).free = true;
     }
+
+    console.log("Ticket class payload:", JSON.stringify(ticketPayload, null, 2));
 
     await api(
       "POST",
@@ -468,21 +491,16 @@ async function publishEvent(
   }
 
 
-
   try {
-
     await api(
       "POST",
       `/events/${eventId}/publish/`,
     );
-
   } catch (err) {
-
     console.warn(
       "Publish skipped",
       err,
     );
-
   }
 
 
@@ -542,13 +560,49 @@ async function updateEvent(
   );
 
 
-  try {
+  // --- Debug: log what we received ---
+  console.log("updateEvent hike:", JSON.stringify(hike, null, 2));
+  console.log("priceGbp raw:", hike.priceGbp, "| type:", typeof hike.priceGbp);
 
+  // Normalise price once, use everywhere
+  const priceGbp = normalisePrice(hike.priceGbp);
+  console.log("priceGbp normalised:", priceGbp);
+
+
+  // Create or update ticket class on every update (in case it was missing)
+  try {
+    const ticketPayload: Record<string, unknown> = {
+      ticket_class: {
+        name: "General Admission",
+        quantity_total: hike.spotsTotal,
+      },
+    };
+
+    // Paid ticket → cost as string "GBP,500"; free ticket → free flag, no cost
+    const cost = buildCost(priceGbp);
+    if (cost) {
+      (ticketPayload.ticket_class as Record<string, unknown>).cost = cost;
+    } else {
+      (ticketPayload.ticket_class as Record<string, unknown>).free = true;
+    }
+
+    console.log("Ticket class payload:", JSON.stringify(ticketPayload, null, 2));
+
+    await api(
+      "POST",
+      `/events/${eventId}/ticket_classes/`,
+      ticketPayload,
+    );
+  } catch {
+    // Ticket class may already exist — that's fine
+  }
+
+
+  try {
     await api(
       "POST",
       `/events/${eventId}/publish/`,
     );
-
   } catch {
 
   }
