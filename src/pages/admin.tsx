@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertCircle, CalendarDays, CheckCircle2, Edit3, Mail, Mountain, Pencil, Plus, RefreshCcw, Save, Search, ShieldCheck, TrendingUp, Users, Wallet, X, Send, Trash2, Tent, Package } from "lucide-react";
+import { AlertCircle, CalendarDays, CheckCircle2, Edit3, Eye, Inbox, Mail, Mountain, Pencil, Plus, RefreshCcw, Save, Search, ShieldCheck, TrendingUp, Users, Wallet, X, Send, Trash2, Tent, Package } from "lucide-react";
 import { api, formatDate, formatGbp, type ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -196,6 +196,23 @@ export default function AdminPage() {
   const overviewBookings = overview?.bookings ?? [];
   const messages = overview?.messages ?? [];
   const messagesCount = overview?.counts.messages ?? messages.length;
+  const [inboxUnread, setInboxUnread] = useState(0);
+
+  async function refreshInboxUnread() {
+    try {
+      const res = await api<{ unread: number }>("/api/admin/inbox/unread-count");
+      setInboxUnread(res.unread ?? 0);
+    } catch {
+      // Inbox is optional — if IMAP isn't configured we just don't show a badge.
+    }
+  }
+
+  useEffect(() => {
+    refreshInboxUnread();
+    const id = window.setInterval(refreshInboxUnread, 60_000);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
@@ -227,7 +244,17 @@ export default function AdminPage() {
           <TabsTrigger value="hikes">Events</TabsTrigger>
           <TabsTrigger value="equipment">Equipment</TabsTrigger>
           <TabsTrigger value="messages">Contact · {messagesCount}</TabsTrigger>
-          <TabsTrigger value="telegram">Telegram bot</TabsTrigger>
+          <TabsTrigger value="telegram" className="gap-2">
+            Telegram bot
+          </TabsTrigger>
+          <TabsTrigger value="inbox" className="gap-2">
+            Inbox
+            {inboxUnread > 0 && (
+              <Badge variant="destructive" className="ml-1 px-1.5 py-0 text-[10px]">
+                {inboxUnread}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="bookings" className="mt-4">
@@ -373,6 +400,10 @@ export default function AdminPage() {
 
         <TabsContent value="telegram" className="mt-4">
           <TelegramAllowlist />
+        </TabsContent>
+
+        <TabsContent value="inbox" className="mt-4">
+          <InboxPanel onUnreadChange={setInboxUnread} />
         </TabsContent>
       </Tabs>
 
@@ -1271,6 +1302,192 @@ function TelegramAllowlist() {
           }
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function InboxPanel({ onUnreadChange }: { onUnreadChange?: (n: number) => void }) {
+  type Row = {
+    uid: number;
+    from: string;
+    fromName: string | null;
+    to: string;
+    subject: string;
+    date: string;
+    preview: string;
+    seen: boolean;
+    flagged: boolean;
+    hasAttachments: boolean;
+    size: number;
+  };
+  type ListResp = { messages: Row[]; total: number; unread: number; fetchedAt: string };
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<ListResp | null>(null);
+  const [selectedUid, setSelectedUid] = useState<number | null>(null);
+  const [open, setOpen] = useState<{ row: Row; body: string | null; html: string | null } | null>(null);
+  const [marking, setMarking] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const json = await api<ListResp>("/api/admin/inbox?limit=50");
+      setData(json);
+      onUnreadChange?.(json.unread);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load inbox");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 60_000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function openMessage(row: Row) {
+    setSelectedUid(row.uid);
+    try {
+      const json = await api<{ text: string | null; html: string | null }>(`/api/admin/inbox/${row.uid}`);
+      setOpen({ row, body: json.text, html: json.html });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to open message");
+    }
+  }
+
+  async function markSeen(row: Row) {
+    setMarking(true);
+    try {
+      await api("/api/admin/inbox/seen", {
+        method: "POST",
+        body: JSON.stringify({ uid: row.uid, seen: !row.seen }),
+      });
+      await load();
+      if (open?.row.uid === row.uid) {
+        setOpen({ ...open, row: { ...open.row, seen: !row.seen } });
+      }
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to update");
+    } finally {
+      setMarking(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-stone-900">
+              <Mail className="h-4 w-4" /> Enquiries inbox
+            </CardTitle>
+            <p className="text-sm text-stone-600">
+              enquiries@badradventures.co.uk · {data ? `${data.unread} unread` : "—"}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+            <RefreshCcw className={`mr-1 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <div className="mb-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              {error}
+            </div>
+          )}
+          {!data && !error && (
+            <div className="text-sm text-stone-500">Loading…</div>
+          )}
+          {data && data.messages.length === 0 && (
+            <div className="text-sm text-stone-500">No messages.</div>
+          )}
+          {data && data.messages.length > 0 && (
+            <div className="divide-y divide-stone-100">
+              {data.messages.map((m) => (
+                <button
+                  key={m.uid}
+                  onClick={() => openMessage(m)}
+                  className={`flex w-full items-start gap-3 px-2 py-3 text-left transition-colors hover:bg-stone-50 ${
+                    !m.seen ? "bg-amber-50/40" : ""
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`truncate text-sm ${!m.seen ? "font-semibold" : "font-medium"} text-stone-900`}>
+                        {m.fromName || m.from}
+                      </span>
+                      {!m.seen && (
+                        <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">new</Badge>
+                      )}
+                      {m.flagged && (
+                        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">flagged</Badge>
+                      )}
+                      {m.hasAttachments && (
+                        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">📎</Badge>
+                      )}
+                    </div>
+                    <div className={`truncate text-sm ${!m.seen ? "font-medium text-stone-900" : "text-stone-700"}`}>
+                      {m.subject || "(no subject)"}
+                    </div>
+                    <div className="truncate text-xs text-stone-500">{m.preview}</div>
+                  </div>
+                  <div className="shrink-0 text-right text-xs text-stone-500">
+                    {new Date(m.date).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {open && (
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="truncate text-stone-900">{open.row.subject || "(no subject)"}</CardTitle>
+              <p className="text-sm text-stone-600">
+                From <span className="font-medium">{open.row.fromName || open.row.from}</span> &lt;{open.row.from}&gt;
+              </p>
+              <p className="text-xs text-stone-500">
+                To {open.row.to} · {new Date(open.row.date).toLocaleString("en-GB")}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => markSeen(open.row)}
+                disabled={marking}
+              >
+                <Eye className="mr-1 h-3.5 w-3.5" />
+                {open.row.seen ? "Mark unread" : "Mark read"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setOpen(null)}>
+                <X className="mr-1 h-3.5 w-3.5" /> Close
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {open.html ? (
+              <iframe
+                title="message"
+                srcDoc={open.html}
+                className="h-[500px] w-full rounded-md border border-stone-200 bg-white"
+              />
+            ) : (
+              <pre className="whitespace-pre-wrap rounded-md bg-stone-50 p-3 text-sm text-stone-800">
+                {open.body || "(empty)"}
+              </pre>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -43,6 +43,12 @@ import {
 } from "./stripe-sync";
 import { sendContactEmail } from "./email";
 import {
+  getInboxSummary,
+  listInboxMessages,
+  setMessageSeen,
+  getInboxMessage,
+} from "./imap";
+import {
   bookedUnitsForRange,
   bookedUnitsMap,
   listAllEquipment,
@@ -1844,6 +1850,89 @@ export function mountRoutes(app: Hono) {
       const cutoff = Date.now() - body.olderThanDays * 24 * 60 * 60 * 1000;
       const removed = await deleteContactMessagesOlderThan(cutoff);
       return c.json({ ok: true, deletedMessages: removed });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  // ---- Admin: enquiries inbox (IMAP) ----
+  app.get("/api/admin/inbox", async (c) => {
+    try {
+      await requireAdmin(c);
+      const limit = Math.max(
+        1,
+        Math.min(200, Number(c.req.query("limit") || 50)),
+      );
+      const cursorRaw = c.req.query("cursor");
+      const cursor = cursorRaw ? Number(cursorRaw) : null;
+      const unreadOnly = c.req.query("unread") === "1";
+      const search = c.req.query("q")?.toString() ?? "";
+      const [list, summary] = await Promise.all([
+        listInboxMessages({ limit, cursor, unreadOnly, search }),
+        getInboxSummary(),
+      ]);
+      return c.json({
+        messages: list.messages,
+        nextCursor: list.nextCursor,
+        summary,
+      });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  app.get("/api/admin/inbox/:uid", async (c) => {
+    try {
+      await requireAdmin(c);
+      const uid = Number(c.req.param("uid"));
+      if (!Number.isFinite(uid)) return c.json({ error: "Invalid uid" }, 400);
+      const { getInboxMessage, setMessageSeen } = await import("./imap");
+      const msg = await getInboxMessage(uid);
+      if (!msg.seen) {
+        try {
+          await setMessageSeen(uid, true);
+        } catch {
+          // best-effort; ignore failures
+        }
+      }
+      return c.json({
+        uid: msg.uid,
+        subject: msg.subject,
+        from: msg.from,
+        fromName: msg.fromName,
+        to: msg.to,
+        date: msg.date,
+        seen: msg.seen,
+        text: msg.text,
+        html: msg.html,
+        attachments: msg.attachments,
+      });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  app.get("/api/admin/inbox/unread-count", async (c) => {
+    try {
+      await requireAdmin(c);
+      const summary = await getInboxSummary();
+      return c.json(summary);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
+  const inboxSeenSchema = z.object({
+    uid: z.number().int().positive(),
+    seen: z.boolean().optional().default(true),
+  });
+
+  app.post("/api/admin/inbox/seen", async (c) => {
+    try {
+      await requireAdmin(c);
+      const body = inboxSeenSchema.parse(await c.req.json());
+      await setMessageSeen(body.uid, body.seen);
+      return c.json({ ok: true, uid: body.uid, seen: body.seen });
     } catch (err) {
       return handleError(err);
     }
