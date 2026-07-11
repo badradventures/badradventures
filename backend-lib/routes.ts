@@ -193,13 +193,14 @@ async function callEventbriteEdgeFunction(
       },
       body: JSON.stringify(body),
     });
-    const body = await res.json() as Record<string, unknown>;
+    const resBody = await res.json() as Record<string, unknown>;
     if (!res.ok) {
-      return { ok: false, error: (body.error as string) ?? `HTTP ${res.status}` };
+      return { ok: false, error: (resBody.error as string) ?? `HTTP ${res.status}` };
     }
     return {
       ok: true,
-      eventbriteEventId: body.eventbriteEventId as string | undefined,
+      eventbriteEventId: (resBody.data as Record<string, unknown> | undefined)?.eventbriteEventId as string | undefined,
+      error: resBody.error as string | undefined,
     };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
@@ -1081,7 +1082,7 @@ export function mountRoutes(app: Hono) {
           },
           undefined,
           false,
-        });
+        );
         if (ebResult.ok && ebResult.eventbriteEventId) {
           await updateHike(body.id, {
             eventbrite_event_id: ebResult.eventbriteEventId,
@@ -1226,7 +1227,7 @@ export function mountRoutes(app: Hono) {
               },
               fresh.eventbrite_event_id ?? undefined,
               imageChanged,
-            });
+            );
             if (ebResult.ok && ebResult.eventbriteEventId) {
               await updateHike(id, {
                 eventbrite_event_id: ebResult.eventbriteEventId,
