@@ -199,7 +199,7 @@ async function callEventbriteEdgeFunction(
     }
     return {
       ok: true,
-      eventbriteEventId: (resBody.data as Record<string, unknown> | undefined)?.eventbriteEventId as string | undefined,
+      eventbriteEventId: resBody.eventbriteEventId as string | undefined,
       error: resBody.error as string | undefined,
     };
   } catch (err) {
