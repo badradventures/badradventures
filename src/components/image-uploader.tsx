@@ -154,10 +154,10 @@ export function ImageUploader({
 
   // Fetch when switching to browse mode
   useEffect(() => {
-    if (mode === "browse" && images.length === 0 && !loadingImages) {
+    if (mode === "browse" && images.length === 0 && !loadingImages && !browseError) {
       fetchImages();
     }
-  }, [mode, fetchImages, images.length, loadingImages]);
+  }, [mode, fetchImages, images.length, loadingImages, browseError]);
 
   async function handleFile(file: File) {
     if (!ACCEPTED.includes(file.type)) {

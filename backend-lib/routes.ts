@@ -1479,34 +1479,35 @@ export function mountRoutes(app: Hono) {
         return c.json({ error: "Invalid kind" }, 400);
       }
 
-      const config = {
-        url: process.env.SUPABASE_URL!,
-        key: process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      };
-      const res = await fetch(
-        `${config.url}/storage/v1/object/list/site-assets?prefix=${kind}/&recursive=true`,
-        { headers: { Authorization: `Bearer ${config.key}` } },
-      );
-      if (!res.ok) {
-        return c.json({ error: "Failed to list images" }, 500);
-      }
-      const objects: { name: string; id: string; updated_at: string }[] = await res.json();
+      const { data: objects, error } = await supabaseAdmin()
+        .storage
+        .from("site-assets")
+        .list(kind, { recursive: true });
 
-      const images = objects
+      if (error) {
+        console.error("[admin/images] list error:", error);
+        return c.json({ error: error.message }, 500);
+      }
+
+      const images = (objects ?? [])
         .filter((o) => o.name && !o.name.endsWith("/"))
         .map((o) => {
+          const fullPath = `${kind}/${o.name}`;
           const { data: pub } = supabaseAdmin()
             .storage.from("site-assets")
-            .getPublicUrl(o.name);
-          const slugMatch = o.name.match(/^hikes\/([^/]+)\//);
+            .getPublicUrl(fullPath);
+          const slugMatch = o.name.match(/^(.+?)\//);
           return {
-            name: o.name,
+            name: fullPath,
             url: pub.publicUrl,
             slug: slugMatch ? slugMatch[1] : null,
-            updatedAt: o.updated_at,
+            updatedAt: o.updated_at ?? null,
           };
         })
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        .sort((a, b) => {
+          if (!a.updatedAt || !b.updatedAt) return 0;
+          return b.updatedAt.localeCompare(a.updatedAt);
+        });
 
       return c.json({ images });
     } catch (err) {
