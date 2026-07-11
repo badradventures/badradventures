@@ -798,10 +798,10 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onBlur={() => markTouched("description")}
-              className={fieldClass(!!errFor("description")) + " font-mono text-sm leading-relaxed resize-y"}
+              className={fieldClass(!!errFor("description")) + " w-full font-mono text-sm leading-relaxed resize-y"}
               aria-invalid={!!errFor("description")}
               aria-describedby={errFor("description") ? "desc-err" : undefined}
-              placeholder="<h2>Itinerary</h2><p>We'll start at 8am from the car park…</p>"
+              placeholder="<h2>Itinerary</h2><p>We'll start at 8am from the car park...</p>"
             />
             <p className="mt-1 text-xs text-stone-400">HTML is supported.</p>
             <FieldError id="desc-err" message={errFor("description")} />
