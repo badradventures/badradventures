@@ -1465,7 +1465,7 @@ export function mountRoutes(app: Hono) {
       const objects: { name: string; id: string; updated_at: string }[] = await res.json();
 
       const images = objects
-        .filter((o) => !o.id.endsWith("/"))
+        .filter((o) => o.name && !o.name.endsWith("/"))
         .map((o) => {
           const { data: pub } = supabaseAdmin()
             .storage.from("site-assets")
