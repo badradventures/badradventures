@@ -949,8 +949,9 @@ export function mountRoutes(app: Hono) {
         policyVersion: body.policyVersion ?? "2026-06",
         consentedAt: body.consentedAt,
       });
-      await sendContactEmail(body);
-      return c.json({ ok: true });
+      const delivery = await sendContactEmail(body);
+      console.log("[contact] sendContactEmail result:", delivery);
+      return c.json({ ok: true, transport: delivery.transport, delivered: delivery.delivered });
     } catch (err) {
       console.error("[contact] error:", err);
       return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
