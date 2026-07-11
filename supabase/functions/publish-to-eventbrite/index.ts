@@ -111,11 +111,15 @@ async function api(
 /// Upload a hike cover image to Eventbrite and return its image ID (for use
 /// as `logo_id` on the event).
 async function uploadImage(imageUrl: string): Promise<string> {
-  // Step 1: Get upload instructions
-  const instructionsRes = await fetch(
-    `${BASE}/media/upload/?type=image-event-logo`,
-    { headers: headers() },
-  );
+  // Step 1: Get upload instructions — this endpoint requires the token
+  // as both a Bearer header and a query parameter
+  const t = token();
+  const uploadInstructionsUrl = `${BASE}/media/upload/?type=image-event-logo&token=${t}`;
+  const instructionsRes = await fetch(uploadInstructionsUrl, {
+    headers: {
+      Authorization: `Bearer ${t}`,
+    },
+  });
   const instructions = await instructionsRes.json() as Record<string, unknown>;
 
   if (!instructionsRes.ok || !instructions.upload_url) {
@@ -366,8 +370,8 @@ function buildEventPayload(hike: {
     event: {
 
       name: {
-        html:
-          `🏔️ ${hike.title} — Badr Adventures`,
+        html: `${hike.title} — Badr Adventures`,
+        text: `${hike.title} — Badr Adventures`,
       },
 
 
