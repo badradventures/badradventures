@@ -205,7 +205,7 @@ export default function AdminPage() {
             Admin
           </span>
           <h1 className="mt-3 text-2xl font-bold text-stone-900 sm:text-3xl">Operations dashboard</h1>
-          <p className="text-stone-600">Manage hikes, equipment, bookings, and contact submissions.</p>
+          <p className="text-stone-600">Manage events, equipment, bookings, and contact submissions.</p>
         </div>
         <Button variant="outline" onClick={refresh} disabled={loading}>
           <RefreshCcw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
@@ -224,7 +224,7 @@ export default function AdminPage() {
       <Tabs defaultValue="bookings" className="mt-8">
         <TabsList>
           <TabsTrigger value="bookings">Bookings</TabsTrigger>
-          <TabsTrigger value="hikes">Hikes</TabsTrigger>
+          <TabsTrigger value="hikes">Events</TabsTrigger>
           <TabsTrigger value="equipment">Equipment</TabsTrigger>
           <TabsTrigger value="messages">Contact · {messagesCount}</TabsTrigger>
           <TabsTrigger value="telegram">Telegram bot</TabsTrigger>
@@ -257,7 +257,7 @@ export default function AdminPage() {
                     </div>
                     <div className="text-sm font-semibold text-stone-900">{formatGbp(b.total_pence)}</div>
                     <Button asChild variant="outline" size="sm">
-                      <Link to={`/hikes/${b.hike_id}`}>View hike</Link>
+                      <Link to={`/hikes/${b.hike_id}`}>View event</Link>
                     </Button>
                   </CardContent>
                 </Card>
@@ -268,13 +268,13 @@ export default function AdminPage() {
 
         <TabsContent value="hikes" className="mt-4">
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-sm text-stone-500">{hikes.length} hike{hikes.length !== 1 ? "s" : ""}</span>
+            <span className="text-sm text-stone-500">{hikes.length} event{hikes.length !== 1 ? "s" : ""}</span>
             <Button onClick={() => setCreatingHike(true)} className="bg-emerald-900 hover:bg-emerald-800">
-              <Plus className="mr-1.5 h-4 w-4" /> New hike
+              <Plus className="mr-1.5 h-4 w-4" /> New event
             </Button>
           </div>
           {hikes.length === 0 ? (
-            <Card><CardContent className="p-8 text-center text-stone-500">No hikes yet.</CardContent></Card>
+            <Card><CardContent className="p-8 text-center text-stone-500">No events yet.</CardContent></Card>
           ) : (
             <div className="space-y-3">
               {hikes.map((h) => (
@@ -293,7 +293,7 @@ export default function AdminPage() {
                       if (!confirm(`Delete "${h.title}"? This cannot be undone.`)) return;
                       try {
                         await api(`/api/admin/hikes/${h.id}`, { method: "DELETE" });
-                        toast.success("Hike deleted.");
+                        toast.success("Event deleted.");
                         refresh();
                       } catch (err) {
                         toast.error(err instanceof Error ? err.message : "Failed to delete");
@@ -564,7 +564,7 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
         method: isNew ? "POST" : "PATCH",
         body: JSON.stringify(body),
       });
-      toast.success(isNew ? "Hike created." : "Hike updated.");
+      toast.success(isNew ? "Event created." : "Event updated.");
       onSaved();
     } catch (err) {
       const apiErr = err as ApiError;
@@ -590,8 +590,8 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{isNew ? "Create hike" : "Edit hike"}</DialogTitle>
-          <DialogDescription>{isNew ? "Add a new hike to the public listings." : "Changes apply to the public listing immediately."}</DialogDescription>
+          <DialogTitle>{isNew ? "Create event" : "Edit event"}</DialogTitle>
+          <DialogDescription>{isNew ? "Add a new event to the public listings." : "Changes apply to the public listing immediately."}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2 sm:grid-cols-2">
           {isNew && (
@@ -837,7 +837,7 @@ function HikeDialog({ hike, onClose, onSaved }: { hike: AdminHike | null; onClos
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onClose}><X className="mr-1 h-4 w-4" /> Cancel</Button>
           <Button onClick={save} disabled={saving} className="bg-emerald-900 hover:bg-emerald-800">
-            <Save className="mr-1 h-4 w-4" /> {saving ? "Saving…" : isNew ? "Create hike" : "Save changes"}
+            <Save className="mr-1 h-4 w-4" /> {saving ? "Saving…" : isNew ? "Create event" : "Save changes"}
           </Button>
         </DialogFooter>
       </DialogContent>

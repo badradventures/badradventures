@@ -67,7 +67,7 @@ export function useAuth() {
 
 const NAV_LINKS = [
   { to: "/", label: "Home", tag: "01" },
-  { to: "/hikes", label: "Hikes", tag: "02" },
+  { to: "/hikes", label: "Events", tag: "02" },
   { to: "/rent", label: "Self Hire", tag: "03" },
   { to: "/about", label: "About", tag: "04" },
   { to: "/contact", label: "Contact", tag: "05" },
@@ -387,7 +387,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
               <ul className="mt-4 space-y-2 text-sm">
                 <li>
                   <Link to="/hikes" className="text-paper/80 hover:text-amber-200">
-                    All hikes
+                    All events
                   </Link>
                 </li>
                 <li>

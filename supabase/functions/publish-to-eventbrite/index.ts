@@ -1,34 +1,14 @@
 // Eventbrite publishing edge function.
 //
 // Called by the Badr Adventures admin API after a hike is created or
-// updated with publish_to_eventbrite = true.  Creates, updates, or
-// unpublishes an Eventbrite event that links back to the hike page on
-// badradventures.co.uk.
+// updated with publish_to_eventbrite = true.
 //
-// POST /  with JSON body:
+// POST /
 //   action: "publish" | "update" | "unpublish"
-//   hike: {
-//     id: string              // hike slug
-//     title: string
-//     summary: string
-//     description: string
-//     location: string
-//     region: string
-//     date: string            // YYYY-MM-DD
-//     duration: string        // e.g. "2 days"
-//     priceGbp: number
-//     image: string
-//     spotsTotal: number
-//   }
-//   eventbrite_event_id?: string   // required for update/unpublish
 //
 // Env vars:
-//   EVENTBRITE_OAUTH_TOKEN   — Personal OAuth token from Eventbrite
-//   EVENTBRITE_ORG_ID        — Cached Eventbrite organization ID
-//
-// Returns:
-//   { ok: true, eventbriteEventId: "..." }
-//   { ok: false, error: "..." }
+//   EVENTBRITE_OAUTH_TOKEN
+//   EVENTBRITE_ORG_ID
 
 const BASE = "https://www.eventbriteapi.com/v3";
 const HIKE_URL = "https://badradventures.co.uk/hikes";
@@ -39,13 +19,21 @@ const HIKE_URL = "https://badradventures.co.uk/hikes";
 
 function token(): string {
   const t = Deno.env.get("EVENTBRITE_OAUTH_TOKEN");
-  if (!t) throw new Error("EVENTBRITE_OAUTH_TOKEN not set");
+
+  if (!t) {
+    throw new Error("EVENTBRITE_OAUTH_TOKEN not set");
+  }
+
   return t;
 }
 
 function orgId(): string {
   const id = Deno.env.get("EVENTBRITE_ORG_ID");
-  if (!id) throw new Error("EVENTBRITE_ORG_ID not set");
+
+  if (!id) {
+    throw new Error("EVENTBRITE_ORG_ID not set");
+  }
+
   return id;
 }
 
@@ -61,72 +49,194 @@ async function api(
   path: string,
   body?: unknown,
 ): Promise<Record<string, unknown>> {
+
   const url = `${BASE}${path}`;
+
   const res = await fetch(url, {
     method,
     headers: headers(),
     body: body ? JSON.stringify(body) : undefined,
   });
-  const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+
+  const data = await res
+    .json()
+    .catch(() => ({})) as Record<string, unknown>;
+
+
   if (!res.ok) {
+
+    console.error(
+      "Eventbrite API error",
+      {
+        method,
+        url,
+        status: res.status,
+        response: data,
+      },
+    );
+
+
     const msg =
       (data.error as string) ||
       (data.error_description as string) ||
       `Eventbrite API error (${res.status})`;
+
     throw new Error(msg);
   }
+
   return data;
 }
 
+
 // ---------------------------------------------------------------------------
-// Venue management — find or create a venue for the hike location
+// Image upload
 // ---------------------------------------------------------------------------
 
-/** Try to find a matching venue by name/location, or create one. */
+/// Upload a hike cover image to Eventbrite and return its image ID (for use
+/// as `logo_id` on the event).
+async function uploadImage(imageUrl: string): Promise<string> {
+  // Step 1: Get upload instructions
+  const instructionsRes = await fetch(
+    `${BASE}/media/upload/?type=image-event-logo`,
+    { headers: headers() },
+  );
+  const instructions = await instructionsRes.json() as Record<string, unknown>;
+
+  if (!instructionsRes.ok || !instructions.upload_url) {
+    const msg = (instructions.error as string) ?? "Failed to get media upload instructions";
+    throw new Error(msg);
+  }
+
+  const uploadUrl = instructions.upload_url as string;
+  const uploadToken = instructions.upload_token as string;
+  const uploadData = instructions.upload_data as Record<string, string>;
+  const fileParam = (instructions.file_parameter_name as string) ?? "file";
+
+  // Step 2: Download the image from the hike URL
+  const imageRes = await fetch(imageUrl);
+  if (!imageRes.ok) {
+    throw new Error(`Failed to download image from ${imageUrl}: ${imageRes.status}`);
+  }
+  const imageBlob = await imageRes.blob();
+
+  // Step 3: Upload the image to Eventbrite's S3
+  const form = new FormData();
+  for (const [key, value] of Object.entries(uploadData)) {
+    form.append(key, value);
+  }
+  form.append(fileParam, imageBlob);
+  const uploadRes = await fetch(uploadUrl, { method: "POST", body: form });
+  if (!uploadRes.ok) {
+    const text = await uploadRes.text().catch(() => "unknown");
+    throw new Error(`S3 upload failed: ${uploadRes.status} ${text}`);
+  }
+
+  // Step 4: Notify Eventbrite the upload is done
+  const notifyRes = await fetch(`${BASE}/media/upload/`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      upload_token: uploadToken,
+      crop_mask: {
+        top_left: { y: 0, x: 0 },
+        width: 1280,
+        height: 640,
+      },
+    }),
+  });
+  const notifyData = await notifyRes.json() as Record<string, unknown>;
+
+  if (!notifyRes.ok) {
+    const msg = (notifyData.error as string) ?? "Failed to finalise image upload";
+    throw new Error(msg);
+  }
+
+  const image = notifyData.image as Record<string, unknown> | undefined;
+  const imageId = image?.id as string | undefined;
+  if (!imageId) {
+    throw new Error("Eventbrite did not return an image ID");
+  }
+
+  console.log("Uploaded image to Eventbrite:", imageId);
+  return imageId;
+}
+
+  
+// ---------------------------------------------------------------------------
+// Venue management
+// ---------------------------------------------------------------------------
+
 async function resolveVenue(
   location: string,
   region: string,
 ): Promise<string> {
+
   const org = orgId();
 
-  // List existing venues to find a match
+
   const venues = await api(
     "GET",
     `/organizations/${org}/venues?page_size=50`,
   );
 
-  const venueList = (venues.venues as Array<Record<string, unknown>>) ?? [];
+
+  const venueList = Array.isArray(venues.venues)
+    ? venues.venues as Array<Record<string, unknown>>
+    : [];
+
+
   const match = venueList.find((v) => {
-    const addr = v.address as Record<string, unknown> | null;
+
+    const addr =
+      v.address as Record<string, unknown> | null;
+
+
     if (!addr) return false;
-    const city = (addr.city as string ?? "").toLowerCase();
-    const regionStr = (addr.region as string ?? "").toLowerCase();
+
+
+    const city =
+      String(addr.city ?? "").toLowerCase();
+
+
+    const regionName =
+      String(addr.region ?? "").toLowerCase();
+
+
     return (
       city === location.toLowerCase() ||
-      regionStr === region.toLowerCase()
+      regionName === region.toLowerCase()
     );
   });
 
-  if (match) return match.id as string;
 
-  // Create a new venue
-  // We parse location into city + region heuristically
-  const city = location.split(",")[0]?.trim() ?? location;
+  if (match) {
+    return String(match.id);
+  }
 
-  const created = await api("POST", "/venues/", {
-    venue: {
-      name: `${location}, ${region}`,
-      address: {
-        city,
-        region,
-        country: "GB",
+
+  const city =
+    location.split(",")[0]?.trim() ?? location;
+
+
+  const created = await api(
+    "POST",
+    `/organizations/${org}/venues/`,
+    {
+      venue: {
+        name: `${location}, ${region}`,
+        address: {
+          city,
+          country: "GB",
+        },
       },
     },
-  });
+  );
 
-  return created.id as string;
+
+  return String(created.id);
 }
 
+  
 // ---------------------------------------------------------------------------
 // Event builders
 // ---------------------------------------------------------------------------
@@ -143,123 +253,287 @@ function buildEventPayload(hike: {
   priceGbp: number;
   image: string;
   spotsTotal: number;
-}) {
+}, logoId?: string) {
   const price = typeof hike.priceGbp === "number" && !Number.isNaN(hike.priceGbp) ? hike.priceGbp : 0;
-  const hikeUrl = `${HIKE_URL}/${encodeURIComponent(hike.id)}`;
-  const startTime = `${hike.date}T09:00:00Z`;
-  // Infer end time from duration: try to parse "N days" or "N hours"
-  // default to 6 hours for a day hike, or multi-day
+  const hikeUrl =
+    `${HIKE_URL}/${encodeURIComponent(hike.id)}`;
+
+
+  const startTime =
+    `${hike.date}T09:00:00Z`;
+
+
   let hours = 6;
-  const dur = hike.duration.toLowerCase();
-  const dayMatch = dur.match(/(\d+)\s*days?/);
-  const hourMatch = dur.match(/(\d+)\s*hours?/);
+
+  const dur =
+    hike.duration.toLowerCase();
+
+
+  const dayMatch =
+    dur.match(/(\d+)\s*days?/);
+
+
+  const hourMatch =
+    dur.match(/(\d+)\s*hours?/);
+
+
   if (dayMatch) {
-    hours = parseInt(dayMatch[1]) * 8; // 8 hours per day
+    hours = parseInt(dayMatch[1]) * 8;
   } else if (hourMatch) {
     hours = parseInt(hourMatch[1]);
   }
-  const endDate = new Date(
-    new Date(hike.date + "T09:00:00Z").getTime() + hours * 60 * 60 * 1000,
-  );
-  const endTime = endDate.toISOString();
+
+
+  const endDate =
+    new Date(
+      new Date(startTime).getTime() +
+        hours * 60 * 60 * 1000,
+    );
+
+
+  const endTime =
+    endDate.toISOString().replace(/\.\d{3}Z$/, "Z");
+
 
   const descriptionHtml = `
     <h2>${hike.title}</h2>
+
     <p>${hike.summary}</p>
+
     <hr />
-    <p>${hike.description.replace(/\n/g, "<br />")}</p>
+
+    <p>
+      ${hike.description.replace(/\n/g, "<br />")}
+    </p>
+
     <hr />
-    <p><strong>Location:</strong> ${hike.location}, ${hike.region}</p>
-    <p><strong>Duration:</strong> ${hike.duration}</p>
-    <p><strong>Price:</strong> £${price.toFixed(2)} per person</p>
-    <p><strong>Spots:</strong> ${hike.spotsTotal}</p>
+
+    <p>
+      <strong>Location:</strong>
+      ${hike.location}, ${hike.region}
+    </p>
+
+    <p>
+      <strong>Duration:</strong>
+      ${hike.duration}
+    </p>
+
+    <p>
+      <strong>Price:</strong>
+      £${price.toFixed(2)} per person 
+    </p>
+
+    <p>
+      <strong>Available spaces:</strong>
+      ${hike.spotsTotal}
+    </p>
+
     <hr />
-    <p>Book your place at: <a href="${hikeUrl}">${hikeUrl}</a></p>
-    <p><em>Powered by <a href="https://badradventures.co.uk">Badr Adventures</a> — Muslim hiking, camping and outdoor adventures in the UK.</em></p>
+
+    <p>
+      Book your place:
+      <a href="${hikeUrl}">
+        ${hikeUrl}
+      </a>
+    </p>
+
+    <p>
+      Powered by
+      <a href="https://badradventures.co.uk">
+        Badr Adventures
+      </a>
+    </p>
   `.trim();
+
 
   return {
     event: {
-      name: { html: `🏔️ ${hike.title} — Badr Adventures` },
-      description: { html: descriptionHtml },
+
+      name: {
+        html:
+          `🏔️ ${hike.title} — Badr Adventures`,
+      },
+
+
+      description: {
+        html: descriptionHtml,
+      },
+
+
       start: {
         timezone: "Europe/London",
         utc: startTime,
       },
+
+
       end: {
         timezone: "Europe/London",
         utc: endTime,
       },
+
+
       currency: "GBP",
+
       online_event: false,
+
       listed: true,
+
       capacity: hike.spotsTotal,
+
+      ...(logoId ? { logo_id: logoId } : {}),
     },
   };
 }
 
+
 // ---------------------------------------------------------------------------
-// Main handlers
+// Publish event
 // ---------------------------------------------------------------------------
 
-async function publishEvent(hike: Parameters<typeof buildEventPayload>[0]) {
-  // Resolve venue
-  const venueId = await resolveVenue(hike.location, hike.region);
-  const payload = buildEventPayload(hike);
-  payload.event.venue_id = venueId;
+async function publishEvent(
+  hike: Parameters<typeof buildEventPayload>[0],
+) {
 
-  // Get or create a free ticket class
-  const org = orgId();
-  const events = await api(
-    "POST",
-    `/organizations/${org}/events/`,
-    payload,
-  );
-  const eventId = events.id as string;
+  const venueId =
+    await resolveVenue(
+      hike.location,
+      hike.region,
+    );
 
-  // Create a free ticket class so the event is complete
+
+  const logoId =
+    hike.image
+      ? await uploadImage(hike.image).catch((err) => {
+          console.warn("Image upload failed, proceeding without logo", err);
+          return undefined;
+        })
+      : undefined;
+
+
+  const payload =
+    buildEventPayload(hike, logoId);
+
+
+  payload.event.venue_id =
+    venueId;
+
+
+  const org =
+    orgId();
+
+
+  const created =
+    await api(
+      "POST",
+      `/organizations/${org}/events/`,
+      payload,
+    );
+
+
+  const eventId =
+    String(created.id);
+
+
+
+  // Create ticket class
   try {
+    const ticketPayload: Record<string, unknown> = {
+      ticket_class: {
+        name: "General Admission",
+        quantity_total: hike.spotsTotal,
+        free: hike.priceGbp === 0,
+        donation: false,
+        hidden: false,
+      },
+    };
+
+    // Paid tickets require a cost value in base unit (pence/Cent)
+    if (hike.priceGbp > 0) {
+      (ticketPayload.ticket_class as Record<string, unknown>).cost = {
+        currency: "GBP",
+        value: Math.round(hike.priceGbp * 100),
+      };
+    }
+
     await api(
       "POST",
       `/events/${eventId}/ticket_classes/`,
-      {
-        ticket_class: {
-          name: "General Admission",
-          quantity_total: hike.spotsTotal,
-          free: true,
-          donation: false,
-          sales_start: new Date().toISOString(),
-          hidden: false,
-        },
-      },
+      ticketPayload,
     );
-  } catch {
-    // Ticket class may have auto-created; that's fine
+  } catch (err) {
+    console.warn(
+      "Ticket class creation skipped",
+      err,
+    );
   }
 
-  // Publish the event
+
+
   try {
-    await api("POST", `/events/${eventId}/publish/`);
-  } catch {
-    // May already be published
+
+    await api(
+      "POST",
+      `/events/${eventId}/publish/`,
+    );
+
+  } catch (err) {
+
+    console.warn(
+      "Publish skipped",
+      err,
+    );
+
   }
+
 
   return eventId;
 }
+
+
+// ---------------------------------------------------------------------------
+// Update event
+// ---------------------------------------------------------------------------
 
 async function updateEvent(
   eventId: string,
   hike: Parameters<typeof buildEventPayload>[0],
 ) {
-  const payload = buildEventPayload(hike);
 
-  // Try to update the venue on the existing event
+  const logoId =
+    hike.image
+      ? await uploadImage(hike.image).catch((err) => {
+          console.warn("Image upload failed during update, proceeding without logo", err);
+          return undefined;
+        })
+      : undefined;
+
+
+  const payload =
+    buildEventPayload(hike, logoId);
+
+
   try {
-    const venueId = await resolveVenue(hike.location, hike.region);
-    payload.event.venue_id = venueId;
-  } catch {
-    // Venue resolution failed — proceed without venue update
+
+    const venueId =
+      await resolveVenue(
+        hike.location,
+        hike.region,
+      );
+
+
+    payload.event.venue_id =
+      venueId;
+
+
+  } catch (err) {
+
+    console.warn(
+      "Venue update skipped",
+      err,
+    );
+
   }
+
 
   await api(
     "POST",
@@ -267,32 +541,61 @@ async function updateEvent(
     payload,
   );
 
-  // Ensure it's published
+
   try {
-    await api("POST", `/events/${eventId}/publish/`);
+
+    await api(
+      "POST",
+      `/events/${eventId}/publish/`,
+    );
+
   } catch {
-    // Already published or no change needed
+
   }
+
 
   return eventId;
 }
 
-async function unpublishEvent(eventId: string) {
-  try {
-    await api("POST", `/events/${eventId}/unpublish/`);
-  } catch {
-    // May already be unpublished
-  }
-  return eventId;
-}
 
 // ---------------------------------------------------------------------------
-// Request schema
+// Unpublish event
+// ---------------------------------------------------------------------------
+
+async function unpublishEvent(
+  eventId: string,
+) {
+
+  try {
+
+    await api(
+      "POST",
+      `/events/${eventId}/unpublish/`,
+    );
+
+  } catch {
+
+  }
+
+
+  return eventId;
+}
+
+
+// ---------------------------------------------------------------------------
+// Request validation
 // ---------------------------------------------------------------------------
 
 interface PublishRequest {
-  action: "publish" | "update" | "unpublish";
+
+  action:
+    | "publish"
+    | "update"
+    | "unpublish";
+
+
   hike?: {
+
     id: string;
     title: string;
     summary: string;
@@ -304,114 +607,235 @@ interface PublishRequest {
     priceGbp: number;
     image: string;
     spotsTotal: number;
+
   };
+
+
   eventbriteEventId?: string;
 }
 
-function validate(req: unknown): PublishRequest {
-  const r = req as Record<string, unknown>;
-  if (!r || typeof r !== "object") throw new Error("Body is required");
-  const action = r.action as string;
-  if (!["publish", "update", "unpublish"].includes(action)) {
-    throw new Error('action must be "publish", "update", or "unpublish"');
+
+
+function validate(
+  req: unknown,
+): PublishRequest {
+
+
+  const r =
+    req as Record<string, unknown>;
+
+
+  if (!r || typeof r !== "object") {
+
+    throw new Error(
+      "Body is required",
+    );
+
   }
 
-  const typedReq: PublishRequest = { action: action as PublishRequest["action"] };
 
-  if (action === "publish" || action === "update") {
-    const hike = r.hike as Record<string, unknown> | undefined;
-    if (!hike) throw new Error("hike object is required for publish/update");
-    if (!hike.id || !hike.title || !hike.date) {
-      throw new Error("hike.id, hike.title, and hike.date are required");
+  const action =
+    r.action as string;
+
+
+  if (
+    ![
+      "publish",
+      "update",
+      "unpublish",
+    ].includes(action)
+  ) {
+
+    throw new Error(
+      "Invalid action",
+    );
+
+  }
+
+
+  const result: PublishRequest = {
+    action:
+      action as PublishRequest["action"],
+  };
+
+
+
+  if (
+    action === "publish" ||
+    action === "update"
+  ) {
+
+    if (!r.hike) {
+
+      throw new Error(
+        "hike required",
+      );
+
     }
-    typedReq.hike = hike as PublishRequest["hike"];
+
+
+    result.hike =
+      r.hike as PublishRequest["hike"];
+
   }
 
-  if (action === "update" || action === "unpublish") {
-    const eventbriteEventId = r.eventbriteEventId as string | undefined;
-    if (!eventbriteEventId) {
-      throw new Error("eventbriteEventId is required for update/unpublish");
+
+
+  if (
+    action === "update" ||
+    action === "unpublish"
+  ) {
+
+    if (!r.eventbriteEventId) {
+
+      throw new Error(
+        "eventbriteEventId required",
+      );
+
     }
-    typedReq.eventbriteEventId = eventbriteEventId;
+
+
+    result.eventbriteEventId =
+      String(r.eventbriteEventId);
+
   }
 
-  return typedReq;
+
+  return result;
 }
+
 
 // ---------------------------------------------------------------------------
 // HTTP handler
 // ---------------------------------------------------------------------------
 
 Deno.serve(async (req) => {
+
   try {
+
     if (req.method !== "POST") {
+
       return new Response(
-        JSON.stringify({ error: "Method not allowed" }),
+        JSON.stringify({
+          error: "Method not allowed",
+        }),
         {
           status: 405,
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
         },
       );
+
     }
 
-    const body = await req.json().catch(() => ({}));
-    const input = validate(body);
 
-    let eventbriteEventId: string | undefined;
+
+    const body =
+      await req.json();
+
+
+    const input =
+      validate(body);
+
+
+
+    let eventbriteEventId:
+      string | undefined;
+
+
 
     switch (input.action) {
+
+
       case "publish":
-        if (!input.hike) {
-          return new Response(
-            JSON.stringify({ error: "hike data required" }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
+
+        eventbriteEventId =
+          await publishEvent(
+            input.hike!,
           );
-        }
-        eventbriteEventId = await publishEvent(input.hike);
+
         break;
+
+
 
       case "update":
-        if (!input.hike || !input.eventbriteEventId) {
-          return new Response(
-            JSON.stringify({ error: "hike data and eventbriteEventId required" }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
+
+        eventbriteEventId =
+          await updateEvent(
+            input.eventbriteEventId!,
+            input.hike!,
           );
-        }
-        eventbriteEventId = await updateEvent(
-          input.eventbriteEventId,
-          input.hike,
-        );
+
         break;
+
+
 
       case "unpublish":
-        if (!input.eventbriteEventId) {
-          return new Response(
-            JSON.stringify({ error: "eventbriteEventId required" }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
+
+        eventbriteEventId =
+          await unpublishEvent(
+            input.eventbriteEventId!,
           );
-        }
-        await unpublishEvent(input.eventbriteEventId);
-        eventbriteEventId = input.eventbriteEventId;
+
         break;
+
     }
 
+
+
     return new Response(
-      JSON.stringify({ ok: true, eventbriteEventId }),
-      {
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  } catch (err) {
-    console.error("[publish-to-eventbrite]", err);
-    return new Response(
+
       JSON.stringify({
-        ok: false,
-        error: err instanceof Error ? err.message : String(err),
+        ok: true,
+        eventbriteEventId,
       }),
+
+      {
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+      },
+
+    );
+
+
+  } catch (err) {
+
+
+    console.error(
+      "[publish-to-eventbrite]",
+      err,
+    );
+
+
+
+    return new Response(
+
+      JSON.stringify({
+
+        ok: false,
+
+        error:
+          err instanceof Error
+            ? err.message
+            : String(err),
+
+      }),
+
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
       },
+
     );
+
   }
+
 });

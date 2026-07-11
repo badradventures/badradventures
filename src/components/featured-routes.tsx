@@ -137,7 +137,7 @@ export default function FeaturedRoutes() {
             </h2>
             <p className="mt-3 max-w-xl text-base leading-relaxed text-ink/70">
               Three trips from the field book. Full itineraries, kit lists, and live spots on the
-              hikes page — these are the ones most often booked out first.
+              events page — these are the ones most often booked out first.
             </p>
           </div>
           <Link

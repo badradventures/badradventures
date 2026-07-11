@@ -64,7 +64,7 @@ export default function DepartureCta() {
             data-reveal-delay="200"
             className="text-lg leading-relaxed text-paper/80"
           >
-            Create a free account to book hikes, track your adventures, and get
+            Create a free account to book events, track your adventures, and get
             early access to new trips. We'll never spam you — promise.
           </p>
           <div data-reveal data-reveal-delay="300" className="flex flex-wrap gap-3">

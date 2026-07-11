@@ -1437,6 +1437,52 @@ export function mountRoutes(app: Hono) {
     }
   });
 
+  // ---- Admin image listing (Supabase Storage) ----
+  // Lists all images in a given bucket kind folder, returning public URLs.
+  // Query param: kind = "hikes" | "equipment"
+  app.get("/api/admin/images", async (c) => {
+    try {
+      await requireAdmin(c);
+      const kind = c.req.query("kind") || "hikes";
+      if (!["hikes", "equipment"].includes(kind)) {
+        return c.json({ error: "Invalid kind" }, 400);
+      }
+
+      const config = {
+        url: process.env.SUPABASE_URL!,
+        key: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      };
+      const res = await fetch(
+        `${config.url}/storage/v1/object/list/site-assets?prefix=${kind}/&recursive=true`,
+        { headers: { Authorization: `Bearer ${config.key}` } },
+      );
+      if (!res.ok) {
+        return c.json({ error: "Failed to list images" }, 500);
+      }
+      const objects: { name: string; id: string; updated_at: string }[] = await res.json();
+
+      const images = objects
+        .filter((o) => !o.id.endsWith("/"))
+        .map((o) => {
+          const { data: pub } = supabaseAdmin()
+            .storage.from("site-assets")
+            .getPublicUrl(o.name);
+          const slugMatch = o.name.match(/^hikes\/([^/]+)\//);
+          return {
+            name: o.name,
+            url: pub.publicUrl,
+            slug: slugMatch ? slugMatch[1] : null,
+            updatedAt: o.updated_at,
+          };
+        })
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
+      return c.json({ images });
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   // ---- Telegram allow-list management ----
   app.get("/api/admin/telegram-allowlist", async (c) => {
     try {

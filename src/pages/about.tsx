@@ -76,7 +76,7 @@ const team = [
 ];
 
 const stats = [
-  { icon: Sun, label: "Day hikes", value: "60+", tint: "text-ochre" },
+  { icon: Sun, label: "Day events", value: "60+", tint: "text-ochre" },
   { icon: Tent, label: "Camping trips", value: "12+", tint: "text-moss" },
   { icon: Waves, label: "Water adventures", value: "8+", tint: "text-terracotta" },
   { icon: Award, label: "Years guiding", value: "8+", tint: "text-bark" },
@@ -175,7 +175,7 @@ export default function AboutPage() {
             className="mt-8 max-w-2xl text-lg leading-relaxed text-paper/80"
           >
             We design and run outdoor experiences for the UK Muslim community and anyone who
-            wants a thoughtful, inclusive adventure. Hikes, kayaking, wild camping — and a
+            wants a thoughtful, inclusive adventure. Events, kayaking, wild camping — and a
             proper meal at the end of the day.
           </p>
 
@@ -452,7 +452,7 @@ export default function AboutPage() {
                 § 04 · Departure
               </span>
               <h2 className="mt-3 font-display text-4xl font-semibold leading-tight text-paper sm:text-5xl">
-                Find a hike that fits your weekend.
+                Find an event that fits your weekend.
               </h2>
               <p className="mt-3 max-w-xl text-paper/70">
                 Browse the calendar, pick a date, and book in under a minute. We hold spots for
@@ -464,7 +464,7 @@ export default function AboutPage() {
                 to="/hikes"
                 className="group inline-flex items-center gap-2 rounded-full bg-ochre px-6 py-3 text-sm font-medium text-ink shadow-lg shadow-ochre/30 transition hover:bg-ochre/90"
               >
-                See upcoming hikes
+                See upcoming events
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link

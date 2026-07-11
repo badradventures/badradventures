@@ -226,7 +226,7 @@ export default function CookieConsentBanner() {
           <Cookie className="h-4 w-4" />
         </span>
         <p className="flex-1 text-sm text-ink-2 leading-relaxed">
-          We use essential cookies so you can sign in, book hikes, and use the
+          We use essential cookies so you can sign in, book events, and use the
           site properly. With your permission we'll also use anonymous
           analytics to understand what's working. You decide.
         </p>

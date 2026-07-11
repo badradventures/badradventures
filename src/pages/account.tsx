@@ -96,7 +96,7 @@ export default function AccountPage() {
     return (
       <main className="mx-auto max-w-md px-4 py-20 text-center">
         <h1 className="text-2xl font-bold text-stone-900">You need to sign in</h1>
-        <p className="mt-2 text-stone-600">Sign in to see your bookings and saved hikes.</p>
+        <p className="mt-2 text-stone-600">Sign in to see your bookings and saved events.</p>
         <div className="mt-6 flex justify-center gap-3">
           <Button asChild className="bg-emerald-900 hover:bg-emerald-800">
             <Link to="/sign-in?next=/account">Sign in</Link>
@@ -167,9 +167,9 @@ export default function AccountPage() {
             <Card>
               <CardContent className="p-8 text-center">
                 <Compass className="mx-auto h-8 w-8 text-stone-400" />
-                <p className="mt-2 text-stone-600">No upcoming hikes yet.</p>
+                <p className="mt-2 text-stone-600">No upcoming events yet.</p>
                 <Button asChild className="mt-4 bg-emerald-900 hover:bg-emerald-800">
-                  <Link to="/hikes">Browse hikes</Link>
+                  <Link to="/hikes">Browse events</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -244,7 +244,7 @@ function BookingRow({ b }: { b: Booking }) {
         </div>
         <div>
           <Button asChild variant="outline" size="sm">
-            <Link to={`/hikes/${b.hikeId}`}>View hike</Link>
+            <Link to={`/hikes/${b.hikeId}`}>View event</Link>
           </Button>
         </div>
       </CardContent>

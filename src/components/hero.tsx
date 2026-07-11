@@ -111,7 +111,7 @@ export default function Hero() {
           className="mt-8 max-w-2xl text-lg leading-relaxed text-paper/80"
         >
           Badr Adventures is the UK's leading Muslim hiking group. We run small-group
-          guided hikes, wild camping weekends and family adventures across the Lake
+          guided events, wild camping weekends and family adventures across the Lake
           District, Peak District, Snowdonia and the Scottish Highlands — with
           prayer breaks built in, halal food, women-friendly groups, and a pace
           that respects family life.
@@ -126,7 +126,7 @@ export default function Hero() {
             to="/hikes"
             className="group inline-flex items-center gap-2 rounded-full bg-[var(--ochre)] px-6 py-3 text-sm font-medium text-ink shadow-[0_18px_40px_-12px_rgba(232,168,75,0.6)] transition hover:bg-[#f0b75e]"
           >
-            See upcoming hikes
+            See upcoming events
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Link>
           <Link
