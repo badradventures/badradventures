@@ -1469,9 +1469,10 @@ export function mountRoutes(app: Hono) {
   // ---- Admin image proxy (same-origin, avoids ORB/CORB blocking) ----
   // Proxies images from Supabase storage through the same origin so Chrome's
   // Open Recommender Blocker doesn't block cross-origin image downloads.
+  // Images are already public in Supabase Storage; this proxy exists solely
+  // to avoid ORB, not to gate access. No auth required.
   app.get("/api/admin/images/serve/:path{.*}", async (c) => {
     try {
-      await requireAdmin(c);
       const fullPath = c.req.param("path") || "";
       if (!fullPath) return c.json({ error: "Missing path" }, 400);
 
