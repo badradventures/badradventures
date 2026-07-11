@@ -96,7 +96,9 @@ async function sendViaIonosSmtp(input: {
   console.log(`[email] IONOS SMTP: sending to ${to} from ${from}`);
   try {
     const info = await getSmtpTransporter().sendMail({
-      from: `${input.fromName} <${from}>`,
+      from: input.fromName
+        ? `${input.fromName} via ${adminEmail()} <${from}>`
+        : from,
       to,
       subject: input.subject,
       text: input.body,
