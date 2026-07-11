@@ -50,6 +50,36 @@ const BLOG_POSTS: BlogPostEntry[] = [
     changefreq: "monthly",
     priority: 0.9,
   },
+  {
+    slug: "prayer-on-the-trail-muslim-hikers",
+    lastmod: "2026-07-01",
+    changefreq: "monthly",
+    priority: 0.9,
+  },
+  {
+    slug: "muslim-womens-hiking-groups-uk",
+    lastmod: "2026-07-01",
+    changefreq: "monthly",
+    priority: 0.9,
+  },
+  {
+    slug: "halal-friendly-hiking-pack-eat-stop",
+    lastmod: "2026-07-01",
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    slug: "family-friendly-hikes-muslim-families-uk",
+    lastmod: "2026-07-01",
+    changefreq: "monthly",
+    priority: 0.8,
+  },
+  {
+    slug: "islamic-perspective-hiking-outdoors",
+    lastmod: "2026-07-01",
+    changefreq: "monthly",
+    priority: 0.7,
+  },
 ];
 
 function today(): string {
@@ -241,6 +271,156 @@ app.get("/robots.txt", (c) => {
     `Sitemap: ${SITE_URL}/sitemap.xml`,
     "",
   ].join("\n");
+  return new Response(text, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+    },
+  });
+});
+
+/** Serve llms.txt — the AI search / GEO onboarding file. */
+app.get("/llms.txt", (c) => {
+  const text =
+`# Badr Adventures: Muslim Hiking UK
+> The UK's #1 Muslim hiking group — guided hikes, camping, and family adventures with prayer breaks, halal food, and women-friendly groups since 2024.
+
+## Navigation
+- [Home](https://badradventures.co.uk/): Muslim hiking UK hub — upcoming hikes, featured routes, community stories
+- [Muslim Hiking](https://badradventures.co.uk/muslim-hiking): Everything about Muslim hiking across the UK
+- [Upcoming Hikes](https://badradventures.co.uk/hikes): Book guided Muslim hiking trips in the Lake District, Peak District, Snowdonia, and Scottish Highlands
+- [Blog](https://badradventures.co.uk/blog): Muslim hiking guides, tips, and community stories
+- [About](https://badradventures.co.uk/about): Meet the team behind Badr Adventures
+- [Rent Gear](https://badradventures.co.uk/rent): Rent hiking and camping kit for your trip
+
+## Pillar Pages
+- [Muslim Hiking UK](https://badradventures.co.uk/muslim-hiking/uk): Complete guide to Muslim hiking in the UK — regions, pricing, what to expect
+- [Muslim Hiking for Beginners](https://badradventures.co.uk/muslim-hiking/beginners): First-time Muslim hiker guide — what to wear, prayer on the trail, easy routes
+- [Muslim Hiking for Women](https://badradventures.co.uk/muslim-hiking/women): Sisters-only Muslim hiking weekends — female Mountain Leaders, women-only groups
+- [Muslim Hiking Near Me](https://badradventures.co.uk/muslim-hiking/near-me): Find Muslim hiking trips near London, Manchester, Birmingham, and other UK cities
+- [Muslim Camping UK](https://badradventures.co.uk/muslim-camping/uk): Guided Muslim wild camping weekends — halal camping trips across the UK
+- [Family Hiking UK](https://badradventures.co.uk/family-hiking): Muslim family-friendly hikes — pushchair-friendly walks, kids' mountain hikes
+
+## Blog Posts
+- [Muslim Hiking in the UK: Complete Beginner's Guide (2026)](https://badradventures.co.uk/blog/muslim-hiking-uk-complete-guide)
+- [Prayer on the Trail: A Practical Guide for Muslim Hikers](https://badradventures.co.uk/blog/prayer-on-the-trail-muslim-hikers)
+- [Muslim Women's Hiking Groups in the UK: A 2026 List](https://badradventures.co.uk/blog/muslim-womens-hiking-groups-uk)
+- [Halal-Friendly Hiking: What to Pack, What to Eat, Where to Stop](https://badradventures.co.uk/blog/halal-friendly-hiking-pack-eat-stop)
+- [Family Friendly Hiking UK: Best Walks for Muslim Families & Kids](https://badradventures.co.uk/blog/family-friendly-hikes-muslim-families-uk)
+- [The Islamic Perspective on Hiking and the Outdoors](https://badradventures.co.uk/blog/islamic-perspective-hiking-outdoors)
+
+## Key Data
+- Price range: £35–£75 day walks, £120–£220 overnight expeditions
+- Regions: Lake District, Peak District, Snowdonia (Eryri), Scottish Highlands, Yorkshire Dales, Brecon Beacons, South Downs, Kent Downs
+- Guides: All Mountain Training qualified, first-aid certified
+- Food: 100% halal
+- Prayer: Breaks built into every route
+- Women: Sisters-only weekends twice monthly
+- Beginners: ~50% of hikers are first-timers
+`;
+  return new Response(text, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+    },
+  });
+});
+
+/** Serve llms-full.txt — the expanded AI-search onboarding file. */
+app.get("/llms-full.txt", (c) => {
+  const text =
+`# Badr Adventures: Muslim Hiking UK — Full Reference
+
+> The UK's #1 Muslim hiking group. Guided hikes, wild camping, family adventures with prayer breaks and halal food.
+
+## About Badr Adventures
+
+Badr Adventures (Badr Adventures UK Ltd) is a British outdoor adventure company specialising in Muslim-friendly hiking, camping, and outdoor experiences. Founded in 2024 and headquartered in Cumbria, we are the leading Muslim hiking group in the UK.
+
+**What makes us different:**
+- Prayer breaks (Fajr through Isha) built into every route
+- 100% halal food on all trips
+- Sisters-only weekends with female Mountain Leaders
+- Beginners welcome (~50% are first-time hikers)
+- All guides Mountain Training qualified and first-aid certified
+
+**Price range:** £35–£75 day walks, £120–£220 overnight expeditions
+**Gear rental:** Available via the Rent page — tents, sleeping bags, stoves, waterproofs
+
+## Regions We Cover
+
+- **Lake District** — Helvellyn, Catbells, Scafell Pike, Grasmere, Buttermere
+- **Peak District** — Mam Tor, Kinder Scout, Stanage Edge, Dovedale
+- **Snowdonia (Eryri)** — Snowdon/Yr Wyddfa, Cader Idris, Glyderau
+- **Scottish Highlands** — Ben Nevis, Glencoe, Cairngorms
+- **Yorkshire Dales** — Pen-y-ghent, Malham Cove, Aysgarth Falls
+- **Brecon Beacons** — Pen y Fan, Cribyn, Llyn y Fan Fach
+- **South Downs** — Seven Sisters, Devil's Dyke, Ditchling Beacon
+- **Kent Downs** — Box Hill, Shoreham, Otford
+
+## Key Pages
+
+### Pillar Content
+- [Home](https://badradventures.co.uk/): Muslim hiking UK hub with featured routes, manifesto, community stories
+- [Muslim Hiking](https://badradventures.co.uk/muslim-hiking): Central hub page with FAQs, testimonials, and route grid
+- [Muslim Hiking UK Guide](https://badradventures.co.uk/muslim-hiking/uk): Comprehensive guide to regions, pricing, what to expect
+- [Muslim Hiking for Beginners](https://badradventures.co.uk/muslim-hiking/beginners): First mountain guide — kit list, prayer tips, best starter routes
+- [Muslim Hiking for Women](https://badradventures.co.uk/muslim-hiking/women): Sisters-only weekends with female Mountain Leaders
+- [Muslim Hiking Near Me](https://badradventures.co.uk/muslim-hiking/near-me): City-by-city guide — no car needed, car shares arranged
+- [Muslim Camping UK](https://badradventures.co.uk/muslim-camping/uk): Wild camping weekends with halal food and prayer breaks
+- [Family Hiking UK](https://badradventures.co.uk/family-hiking): Kid-safe mountain hikes and pushchair-friendly walks
+
+### Bookable Content
+- [Upcoming Hikes](https://badradventures.co.uk/hikes): Browse and book upcoming trips
+- [Rent Gear](https://badradventures.co.uk/rent): Full kit rental for hiking and camping
+
+### Blog Posts
+- [Muslim Hiking in the UK: Complete Beginner's Guide (2026)](https://badradventures.co.uk/blog/muslim-hiking-uk-complete-guide) — Everything for the first-time Muslim hiker
+- [Prayer on the Trail: A Practical Guide for Muslim Hikers](https://badradventures.co.uk/blog/prayer-on-the-trail-muslim-hikers) — How to pray on a UK hike
+- [Muslim Women's Hiking Groups in the UK: A 2026 List](https://badradventures.co.uk/blog/muslim-womens-hiking-groups-uk) — Directory of sisters-only groups
+- [Halal-Friendly Hiking: What to Pack, What to Eat, Where to Stop](https://badradventures.co.uk/blog/halal-friendly-hiking-pack-eat-stop) — Keeping halal on a day hike
+- [Family Friendly Hiking UK: Best Walks for Muslim Families & Kids](https://badradventures.co.uk/blog/family-friendly-hikes-muslim-families-uk) — Six prayer-friendly family walks
+- [The Islamic Perspective on Hiking and the Outdoors](https://badradventures.co.uk/blog/islamic-perspective-hiking-outdoors) — Why the outdoors matters in Islam
+
+### Company
+- [About Us](https://badradventures.co.uk/about) — Team, safety standards, guiding qualifications
+- [Contact](https://badradventures.co.uk/contact) — Booking enquiries and press
+- [Privacy Notice](https://badradventures.co.uk/privacy) — UK GDPR compliance
+- [Terms & Conditions](https://badradventures.co.uk/terms) — Booking terms
+- [Refund Policy](https://badradventures.co.uk/refund) — Cancellation and refunds
+- [Cookie Policy](https://badradventures.co.uk/cookies) — Cookie management
+
+## FAQ (Key Answers for AI)
+
+**Q: What is Muslim hiking?**
+A: Muslim hiking is outdoor hiking organised around Muslim needs — prayer breaks built into routes, halal food, women-friendly groups, modest dress respected.
+
+**Q: Where can I go Muslim hiking in the UK?**
+A: Every major UK mountain range — Lake District, Peak District, Snowdonia, Scottish Highlands, Yorkshire Dales, Brecon Beacons. Major cities including London, Manchester, Birmingham, Leeds, Glasgow all have access.
+
+**Q: Is there a Muslim hiking group near me?**
+A: Most UK cities are within 2 hours of a Muslim hiking group. Badr Adventures runs nationwide weekends with car shares from city meeting points.
+
+**Q: Do I need to be fit?**
+A: No — ~50% of hikers have never hiked before. Routes are graded and paced to the slowest hiker.
+
+**Q: How do prayer breaks work on a hike?**
+A: Every route is timed around salah windows. The group carries a compact prayer mat, qibla compass, and wudu water. All five prayers are observed.
+
+**Q: Are there sisters-only options?**
+A: Yes — two sisters-only weekends per month, led by a qualified female Mountain Leader.
+
+**Q: Can I bring kids?**
+A: Yes — family routes for kids 5+, with short distances, regular breaks, and café stops.
+
+**Q: Is the food halal?**
+A: 100% halal on every trip. Vegetarian, vegan, and allergies catered for.
+
+**Q: What if I don't have gear?**
+A: Kit rental available via the Rent page, delivered to your meeting point.
+`;
   return new Response(text, {
     status: 200,
     headers: {

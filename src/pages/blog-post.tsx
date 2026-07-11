@@ -6,6 +6,41 @@ import { Badge } from "@/components/ui/badge";
 import { BLOG_POSTS } from "./blog-index";
 import { RENDERED_POSTS } from "./blog-content";
 
+function RelatedPosts({ currentSlug }: { currentSlug: string }) {
+  const related = BLOG_POSTS
+    .filter((p) => p.slug !== currentSlug)
+    .slice(0, 3);
+
+  if (related.length === 0) return null;
+
+  return (
+    <section className="border-t border-ink/10 bg-paper-2/20 py-16">
+      <div className="mx-auto max-w-3xl px-6 sm:px-8">
+        <h2 className="font-serif text-2xl font-semibold">Keep reading</h2>
+        <div className="mt-8 grid gap-6 sm:grid-cols-2">
+          {related.map((post) => (
+            <Link
+              key={post.slug}
+              to={`/blog/${post.slug}`}
+              className="group rounded-xl border border-ink/10 bg-paper p-5 transition hover:border-ink/20 hover:shadow-sm"
+            >
+              <h3 className="font-serif text-lg font-medium leading-snug group-hover:text-[var(--ochre)]">
+                {post.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-2 line-clamp-2">
+                {post.description}
+              </p>
+              <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-[var(--ochre)]">
+                Read <ArrowRight className="h-3 w-3" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const meta = BLOG_POSTS.find((p) => p.slug === slug);
@@ -104,6 +139,11 @@ export default function BlogPostPage() {
         // build time (no user input, all strings are static).
         dangerouslySetInnerHTML={{ __html: html }}
       />
+
+      {/* Related posts — contextual cross-linking for SEO + reader retention */}
+      {slug && (
+        <RelatedPosts currentSlug={slug} />
+      )}
 
       <section className="border-t border-ink/10 bg-paper-2/40 py-12">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-6 sm:px-8">

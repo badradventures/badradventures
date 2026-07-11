@@ -192,6 +192,9 @@ export const RENDERED_POSTS: Record<string, string> = {
   <li><a href="https://www.thebmc.co.uk/" target="_blank" rel="noopener noreferrer">British Mountaineering Council (BMC)</a> — the representative body for climbers, hill walkers and mountaineers in England and Wales. Excellent resource for access, conservation and safety.</li>
   <li><a href="https://www.mountainrescue.org.uk/" target="_blank" rel="noopener noreferrer">Mountain Rescue England and Wales</a> — a charity. If a Badr Adventures trip ever goes wrong on the hill, these are the people we call.</li>
 </ul>
+<p>
+  For more on women-only hiking groups, see our guide to Muslim women's hiking groups in the UK. For practical advice on packing and eating, see our guides on halal-friendly hiking packs and family-friendly hikes for Muslim families.
+</p>
 `,
   "halal-hiking-kit-list-uk": `
 <p class="lead">
@@ -307,6 +310,9 @@ export const RENDERED_POSTS: Record<string, string> = {
   group. They'll lend you a list, check your kit, and make sure you turn
   up with the right gear. Most groups lend spare waterproofs, hats and
   gloves on the day.
+</p>
+<p>
+  For more on the spiritual side of hiking, see our guide on the Islamic perspective on hiking outdoors. For advice on eating and packing, see our guides on halal-friendly hiking packs and family-friendly hikes for Muslim families.
 </p>
 `,
   "prayer-on-the-trail-muslim-hikers": `
@@ -470,6 +476,9 @@ export const RENDERED_POSTS: Record<string, string> = {
   or only in your local musalla, it's worth doing once. The mountains don't
   change the prayer. The prayer doesn't change the mountain. They just
   happen in the same place, and that's enough.
+</p>
+<p>
+  For more on women-only hiking groups, see our guide to Muslim women's hiking groups in the UK. For practical advice on packing and eating, see our guides on halal-friendly hiking packs and family-friendly hikes for Muslim families.
 </p>
 `,
   "muslim-womens-hiking-groups-uk": `
@@ -666,6 +675,9 @@ export const RENDERED_POSTS: Record<string, string> = {
   For dedicated family hiking, see our guide to family-friendly hikes
   for Muslim families in the UK.
 </p>
+<p>
+  For more on the spiritual side of hiking, see our guide on the Islamic perspective on hiking outdoors. For practical advice on packing and eating, see our guides on halal-friendly hiking packs and family-friendly hikes for Muslim families.
+</p>
 `,
   "halal-friendly-hiking-pack-eat-stop": `
 <p class="lead">
@@ -831,6 +843,9 @@ export const RENDERED_POSTS: Record<string, string> = {
 <p>
   If you have dietary needs beyond halal (vegan, gluten-free, nut
   allergy), tell the leader when you book. We'll work it out.
+</p>
+<p>
+  For more on the spiritual side of hiking, see our guide on the Islamic perspective on hiking outdoors. For practical advice on packing and eating, see our guides on halal-friendly hiking packs and family-friendly hikes for Muslim families.
 </p>
 `,
   "family-friendly-hikes-muslim-families-uk": `
@@ -1046,6 +1061,9 @@ export const RENDERED_POSTS: Record<string, string> = {
 <p>
   Email us if you want to be on the family hikes list.
 </p>
+<p>
+  For more on the spiritual side of hiking, see our guide on the Islamic perspective on hiking outdoors. For practical advice on packing and eating, see our guides on halal-friendly hiking packs and family-friendly hikes for Muslim families.
+</p>
 `,
   "islamic-perspective-hiking-outdoors": `
 <p class="lead">
@@ -1225,6 +1243,9 @@ export const RENDERED_POSTS: Record<string, string> = {
   Most people who try it once end up trying it again. The
   combination of effort and quiet does something that
   nothing else quite does.
+</p>
+<p>
+  For more on women-only hiking groups, see our guide to Muslim women's hiking groups in the UK. For practical advice on packing and eating, see our guides on halal-friendly hiking packs and family-friendly hikes for Muslim families.
 </p>
 `,
 };

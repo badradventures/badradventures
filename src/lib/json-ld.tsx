@@ -38,7 +38,7 @@ export function organizationJsonLd() {
     image: `${SITE_URL}/og-default.png`,
     description:
       "Badr Adventures runs guided hikes across the Lake District, Peak District, Snowdonia and beyond. Small groups, qualified guides, real trips.",
-    telephone: "+44-0000-000000",
+    telephone: "+44-1539-000000",
     email: "enquiries@badradventures.co.uk",
     priceRange: "££",
     currenciesAccepted: "GBP",
@@ -64,6 +64,7 @@ export function organizationJsonLd() {
       "Mountain scrambling",
       "Hill walking",
     ],
+    // TODO: add real social profiles when they exist
     sameAs: [],
     openingHoursSpecification: [
       {
@@ -304,5 +305,123 @@ export function blogPostingJsonLd(options: {
     dateModified: options.dateModified,
     image: options.image.startsWith("http") ? options.image : `${SITE_URL}${options.image}`,
     mainEntityOfPage: options.mainEntityOfPage,
+  };
+}
+
+/** HowTo schema for "Prepare for your first Muslim hike" — targets rich results
+ *  and AI overviews for beginner-oriented searches. */
+export function firstMuslimHikeHowToJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "How to Prepare for Your First Muslim Hike in the UK",
+    description:
+      "A step-by-step guide to preparing for a Muslim-friendly hike in the UK — what kit you need, what to pack for prayer on the trail, halal food tips, and how to choose your first mountain.",
+    step: [
+      {
+        "@type": "HowToStep",
+        position: 1,
+        name: "Waterproof hiking boots",
+        text: "Ankle-support boots, not trainers. Wet grass, slate, mud and bog will punish poor footwear.",
+        url: `${SITE_URL}/muslim-hiking/beginners#kit`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 2,
+        name: "Waterproof jacket",
+        text: "Gore-tex or equivalent waterproof shell. UK mountains make their own weather.",
+        url: `${SITE_URL}/muslim-hiking/beginners#kit`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 3,
+        name: "25–30 litre rucksack",
+        text: "Big enough for lunch, two water bottles, waterproofs and a spare warm layer.",
+        url: `${SITE_URL}/muslim-hiking/beginners#kit`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 4,
+        name: "Head torch with spare batteries",
+        text: "Even a 6pm summer finish can need a torch for the last mile through forest.",
+        url: `${SITE_URL}/muslim-hiking/beginners#kit`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 5,
+        name: "Two litres of water",
+        text: "UK hills are wetter than people think. Two litres minimum, even on a cool day.",
+        url: `${SITE_URL}/muslim-hiking/beginners#kit`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 6,
+        name: "Packed lunch and emergency snacks",
+        text: "Halal food for the summit — bring your own summit chocolate for morale.",
+        url: `${SITE_URL}/muslim-hiking/beginners#kit`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 7,
+        name: "Compact prayer mat and qibla compass",
+        text: "Fits in a side pocket. Badr Adventures carries group prayer mats and a qibla compass in every group kit.",
+        url: `${SITE_URL}/muslim-hiking/beginners#prayer`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 8,
+        name: "Modest base layers",
+        text: "Long sleeves, long trousers or zip-off hiking trousers. Dress for weather and comfort.",
+        url: `${SITE_URL}/muslim-hiking/beginners#kit`,
+      },
+    ],
+  };
+}
+
+/** HowTo schema for "Prayer on the trail" — targets voice search + AI overviews. */
+export function prayerOnTrailHowToJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "How to Pray Salah on a UK Hike",
+    description:
+      "A practical guide to praying the five daily prayers while hiking in the UK — wudu with limited water, finding a clean spot on the trail, combining prayers, and using a prayer mat on uneven ground.",
+    step: [
+      {
+        "@type": "HowToStep",
+        position: 1,
+        name: "Plan your route around prayer times",
+        text: "Plot the day's hike with salah windows built in.",
+        url: `${SITE_URL}/blog/prayer-on-the-trail-muslim-hikers`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 2,
+        name: "Carry a compact wudu kit",
+        text: "A 500ml bottle for water wudu or a small bag of clean soil for tayammum.",
+        url: `${SITE_URL}/blog/prayer-on-the-trail-muslim-hikers`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 3,
+        name: "Find a clean, level spot",
+        text: "A dry rock, a flat patch of grass, or a clear piece of trail.",
+        url: `${SITE_URL}/blog/prayer-on-the-trail-muslim-hikers`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 4,
+        name: "Know the combining rules for travellers",
+        text: "When travelling, you can combine Dhuhr and Asr, and Maghrib and Isha.",
+        url: `${SITE_URL}/blog/prayer-on-the-trail-muslim-hikers`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 5,
+        name: "Use a packable prayer mat",
+        text: "A thin, foldable mat that fits in a side pocket.",
+        url: `${SITE_URL}/blog/prayer-on-the-trail-muslim-hikers`,
+      },
+    ],
   };
 }

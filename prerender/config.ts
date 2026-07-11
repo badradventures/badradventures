@@ -32,6 +32,7 @@ import {
   faqJsonLd,
   articleJsonLd,
   authorJsonLd,
+  speakableJsonLd,
 } from "@/lib/json-ld";
 import type { ComponentType } from "react";
 
@@ -191,6 +192,7 @@ export const ROUTES: RouteConfig[] = [
         { name: "Muslim Hiking", path: "/muslim-hiking" },
         { name: "For Beginners", path: "/muslim-hiking/beginners" },
       ]),
+      speakableJsonLd(),
     ],
   },
   {
@@ -217,6 +219,7 @@ export const ROUTES: RouteConfig[] = [
         { name: "Muslim Hiking", path: "/muslim-hiking" },
         { name: "For Women", path: "/muslim-hiking/women" },
       ]),
+      speakableJsonLd(),
     ],
   },
   {
@@ -249,6 +252,7 @@ export const ROUTES: RouteConfig[] = [
         { name: "Near Me", path: "/muslim-hiking/near-me" },
       ]),
       faqJsonLd(MUSLIM_HIKING_NEAR_ME_FAQS),
+      speakableJsonLd(),
     ],
   },
   {
@@ -587,6 +591,7 @@ export const ROUTES: RouteConfig[] = [
         { name: "Home", path: "/" },
         { name: "Muslim Camping UK", path: "/muslim-camping/uk" },
       ]),
+      speakableJsonLd(),
     ],
   },
   {
@@ -615,6 +620,7 @@ export const ROUTES: RouteConfig[] = [
         { name: "Home", path: "/" },
         { name: "Family Hiking UK", path: "/family-hiking" },
       ]),
+      speakableJsonLd(),
     ],
   },
   // Catch-all 404 — included so we can index it with noindex via the page itself.

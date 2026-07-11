@@ -194,7 +194,10 @@ export default function HikeDetailPage() {
           <Card>
             <CardContent className="space-y-4 p-6">
               <h2 className="text-xl font-semibold text-stone-900">About this hike</h2>
-              <p className="text-stone-700">{hike.description}</p>
+              <div
+                className="prose prose-stone max-w-none"
+                dangerouslySetInnerHTML={{ __html: hike.description }}
+              />
               <ul className="mt-2 grid gap-2 sm:grid-cols-2">
                 {hike.heroBullets.map((b) => (
                   <li key={b} className="flex items-start gap-2 text-sm text-stone-700">

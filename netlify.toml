@@ -48,6 +48,18 @@
   to = "/.netlify/functions/sitemap"
 
 [[redirects]]
+  force = true
+  from = "/llms.txt"
+  status = 200
+  to = "/.netlify/functions/sitemap"
+
+[[redirects]]
+  force = true
+  from = "/llms-full.txt"
+  status = 200
+  to = "/.netlify/functions/sitemap"
+
+[[redirects]]
   from = "/*"
   status = 200
   to = "/index.html"
