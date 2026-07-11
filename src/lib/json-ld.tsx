@@ -425,3 +425,99 @@ export function prayerOnTrailHowToJsonLd() {
     ],
   };
 }
+
+/** HowTo schema for "Muslim hiking kit guide" — targets HowTo rich results + AI overviews. */
+export function muslimHikingKitHowToJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "How to Choose Muslim Hiking Equipment in the UK",
+    description:
+      "A practical guide to choosing modest, prayer-friendly hiking equipment for UK mountains — waterproof jackets that work with hijab, prayer mats that fit in a side pocket, halal-friendly cooking gear, and layered clothing for Islamic modesty on the trail.",
+    step: [
+      {
+        "@type": "HowToStep",
+        position: 1,
+        name: "Choose modest waterproof outer layers",
+        text: "Look for long-cut waterproof jackets that cover the hips and seat. Dark colours reduce visible dirt. Pair with waterproof over-trousers. Avoid slim-fit or fashion cuts.",
+        url: `${SITE_URL}/muslim-hiking/equipment#outer-layers`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 2,
+        name: "Pick prayer-friendly base layers",
+        text: "Long-sleeve merino or synthetic base layers. Turtlenecks or neck gaiters eliminate gaps. Loose-fit bottoms over leggings. A lightweight prayer skirt pairs over hiking trousers for quick salah.",
+        url: `${SITE_URL}/muslim-hiking/equipment#modest-layers`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 3,
+        name: "Get a compact prayer mat and wudu kit",
+        text: "A thin 80x50cm foldable mat fits a rucksack side pocket. A 500ml soft wudu bottle with a spray nozzle uses minimal water. A qibla compass app or keychain compass completes the kit.",
+        url: `${SITE_URL}/muslim-hiking/equipment#prayer-kit`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 4,
+        name: "Halal-friendly cooking setup for multi-day trips",
+        text: "A small gas stove, titanium pot, reusable bowl and spork. Pre-prepared halal dehydrated meals or fresh ingredients. Separate utensils if sharing with non-halal campers.",
+        url: `${SITE_URL}/muslim-hiking/equipment#camp-cooking`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 5,
+        name: "Hijab-friendly insulation layers",
+        text: "A fleece or insulated jacket with a hood that fits over hijab. Size up to avoid restriction. A neck gaiter or tube scarf eliminates cold air gaps. Gloves and a beanie for exposed summits.",
+        url: `${SITE_URL}/muslim-hiking/equipment#insulation`,
+      },
+    ],
+  };
+}
+
+/** HowTo schema for "Ramadan hiking" — targets voice search + AI overviews for iftar hikes. */
+export function ramadanHikingHowToJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "How to Hike Safely While Fasting in Ramadan in the UK",
+    description:
+      "A practical guide to hiking in Ramadan — planning pre-dawn starts, staying hydrated at suhoor, choosing shaded routes, timing hikes around prayer and iftar, and breaking your fast safely on a mountain summit.",
+    step: [
+      {
+        "@type": "HowToStep",
+        position: 1,
+        name: "Start before dawn after Fajr prayer",
+        text: "Set off at 5-6am after Fajr. The coolest part of the day is sunrise to mid-morning. Most of your route should be done before 1-2pm. Pack your rucksack the night before.",
+        url: `${SITE_URL}/muslim-hiking/ramadan#timing`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 2,
+        name: "Eat a slow-release suhoor",
+        text: "Oats, eggs, wholemeal bread, bananas, yoghurt, dates. Drink 500-750ml water with suhoor. Avoid salty foods and caffeine. Don't skip suhoor — you need the energy.",
+        url: `${SITE_URL}/muslim-hiking/ramadan#suhoor`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 3,
+        name: "Choose a shaded, moderate route under 10km",
+        text: "Woodland trails, valley paths, or ridges with early-morning sun. Avoid steep exposed ascents after 11am. 6-8km at easy-moderate grade is ideal for a fasting hiker. Plan a shaded rest stop for Dhuhr.",
+        url: `${SITE_URL}/muslim-hiking/ramadan#routes`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 4,
+        name: "Break your fast (iftar) on the summit at sunset",
+        text: "Time your summit arrival for Maghrib. Dates and water first, then Maghrib prayer with the sunset over the valley. Badr Adventures provides iftar packs on guided Ramadan hikes. Head down with head torches.",
+        url: `${SITE_URL}/muslim-hiking/ramadan#iftar-summit`,
+      },
+      {
+        "@type": "HowToStep",
+        position: 5,
+        name: "Know when NOT to hike while fasting",
+        text: "If you have diabetes, a medical condition, are pregnant, breastfeeding, or feel unwell — don't fast and hike. Join a non-fasting Ramadan hike instead.",
+        url: `${SITE_URL}/muslim-hiking/ramadan#health`,
+      },
+    ],
+  };
+}

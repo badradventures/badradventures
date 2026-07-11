@@ -10,6 +10,9 @@ import MuslimHikingUkPage from "@/pages/muslim-hiking-uk";
 import MuslimHikingBeginnersPage from "@/pages/muslim-hiking-beginners";
 import MuslimHikingWomenPage from "@/pages/muslim-hiking-women";
 import MuslimHikingNearMePage from "@/pages/muslim-hiking-near-me";
+import MuslimHikingGuidePage from "@/pages/muslim-hiking-guide";
+import MuslimHikingEquipmentPage from "@/pages/muslim-hiking-equipment";
+import MuslimHikingRamadanPage from "@/pages/muslim-hiking-ramadan";
 import MuslimCampingUkPage from "@/pages/muslim-camping-uk";
 import FamilyHikingPage from "@/pages/family-hiking";
 import BlogIndexPage from "@/pages/blog-index";
@@ -45,6 +48,9 @@ export default function App() {
               <Route path="/muslim-hiking/beginners" element={<MuslimHikingBeginnersPage />} />
               <Route path="/muslim-hiking/women" element={<MuslimHikingWomenPage />} />
               <Route path="/muslim-hiking/near-me" element={<MuslimHikingNearMePage />} />
+<Route path="/muslim-hiking/guide" element={<MuslimHikingGuidePage />} />
+              <Route path="/muslim-hiking/equipment" element={<MuslimHikingEquipmentPage />} />
+              <Route path="/muslim-hiking/ramadan" element={<MuslimHikingRamadanPage />} />
               <Route path="/muslim-camping/uk" element={<MuslimCampingUkPage />} />
               <Route path="/family-hiking" element={<FamilyHikingPage />} />
               <Route path="/blog" element={<BlogIndexPage />} />

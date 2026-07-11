@@ -16,6 +16,9 @@ import MuslimHikingWomenPage from "@/pages/muslim-hiking-women";
 import MuslimHikingNearMePage from "@/pages/muslim-hiking-near-me";
 import MuslimCampingUkPage from "@/pages/muslim-camping-uk";
 import FamilyHikingPage from "@/pages/family-hiking";
+import MuslimHikingGuidePage from "@/pages/muslim-hiking-guide";
+import MuslimHikingEquipmentPage from "@/pages/muslim-hiking-equipment";
+import MuslimHikingRamadanPage from "@/pages/muslim-hiking-ramadan";
 import BlogIndexPage from "@/pages/blog-index";
 import BlogPostPage from "@/pages/blog-post";
 import AboutPage from "@/pages/about";
@@ -33,6 +36,9 @@ import {
   articleJsonLd,
   authorJsonLd,
   speakableJsonLd,
+  firstMuslimHikeHowToJsonLd,
+  muslimHikingKitHowToJsonLd,
+  ramadanHikingHowToJsonLd,
 } from "@/lib/json-ld";
 import type { ComponentType } from "react";
 
@@ -620,6 +626,51 @@ export const ROUTES: RouteConfig[] = [
         { name: "Home", path: "/" },
         { name: "Family Hiking UK", path: "/family-hiking" },
       ]),
+      speakableJsonLd(),
+    ],
+  },
+  {
+    path: "/muslim-hiking/guide",
+    Page: MuslimHikingGuidePage,
+    seo: {
+      title: "The Complete Muslim Hiking Guide: Kit, Prayer, Safety & UK Routes | Badr Adventures",
+      description: "Your complete guide to Muslim hiking in the UK. What kit you need, how to pray on the trail, halal food on the hill, navigation tips, and how to book a guided hike with Badr Adventures.",
+      keywords: ["muslim hiking guide", "complete muslim hiking guide", "muslim hiking how to", "halal hiking tips", "prayer on a hike guide", "muslim hiking gear"],
+      ogType: "website",
+    },
+    jsonLd: [
+      breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Muslim Hiking", path: "/muslim-hiking" }, { name: "Guide", path: "/muslim-hiking/guide" }]),
+      firstMuslimHikeHowToJsonLd(),
+      speakableJsonLd(),
+    ],
+  },
+  {
+    path: "/muslim-hiking/equipment",
+    Page: MuslimHikingEquipmentPage,
+    seo: {
+      title: "Muslim Hiking Equipment: Kit List, Prayer Gear & Halal Trail Food | Badr Adventures",
+      description: "Complete Muslim hiking kit guide. Boots, waterproofs, prayer mats, qibla compass, wudu supplies, halal trail food, modest hiking clothes — every item you need for a Muslim hike in the UK.",
+      keywords: ["muslim hiking equipment", "muslim hiking kit", "halal hiking gear", "modest hiking clothes", "hiking prayer mat", "wudu on a hike", "qibla compass hiking"],
+      ogType: "website",
+    },
+    jsonLd: [
+      breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Muslim Hiking", path: "/muslim-hiking" }, { name: "Equipment", path: "/muslim-hiking/equipment" }]),
+      muslimHikingKitHowToJsonLd(),
+      speakableJsonLd(),
+    ],
+  },
+  {
+    path: "/muslim-hiking/ramadan",
+    Page: MuslimHikingRamadanPage,
+    seo: {
+      title: "Ramadan Hiking UK: Fasting, Iftar Hikes & Night Walks | Badr Adventures",
+      description: "Ramadan hiking in the UK — fasting on the trail, iftar at the summit, night hikes under the stars, and how Muslim hikers adapt their outdoor adventures for the blessed month.",
+      keywords: ["ramadan hiking", "iftar hike", "fasting hiking", "muslim hiking ramadan", "night hike ramadan", "suhoor hike", "muslim hiking iftar"],
+      ogType: "website",
+    },
+    jsonLd: [
+      breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Muslim Hiking", path: "/muslim-hiking" }, { name: "Ramadan", path: "/muslim-hiking/ramadan" }]),
+      ramadanHikingHowToJsonLd(),
       speakableJsonLd(),
     ],
   },
