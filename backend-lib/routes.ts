@@ -1881,6 +1881,16 @@ export function mountRoutes(app: Hono) {
     }
   });
 
+  app.get("/api/admin/inbox/unread-count", async (c) => {
+    try {
+      await requireAdmin(c);
+      const summary = await getInboxSummary();
+      return c.json(summary);
+    } catch (err) {
+      return handleError(err);
+    }
+  });
+
   app.get("/api/admin/inbox/:uid", async (c) => {
     try {
       await requireAdmin(c);
@@ -1907,16 +1917,6 @@ export function mountRoutes(app: Hono) {
         html: msg.html,
         attachments: msg.attachments,
       });
-    } catch (err) {
-      return handleError(err);
-    }
-  });
-
-  app.get("/api/admin/inbox/unread-count", async (c) => {
-    try {
-      await requireAdmin(c);
-      const summary = await getInboxSummary();
-      return c.json(summary);
     } catch (err) {
       return handleError(err);
     }
