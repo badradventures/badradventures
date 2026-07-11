@@ -1433,7 +1433,7 @@ export function mountRoutes(app: Hono) {
       }
 
       const ext = mimeToExt(mime);
-      const folder = c.req.query("slug") || "general";
+      const folder = (form.get("folder") || c.req.query("slug") || "general").toString();
       const safeName = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
       const objectPath = `${kind}/${folder}/${safeName}`;
 
@@ -1512,18 +1512,41 @@ export function mountRoutes(app: Hono) {
         return c.json({ error: "Invalid kind" }, 400);
       }
 
-      const { data: objects, error } = await supabaseAdmin()
+      // List top-level entries (mix of folders and files)
+      const { data: topLevel, error } = await supabaseAdmin()
         .storage
         .from("site-assets")
-        .list(kind, { recursive: true });
+        .list(kind, { limit: 100 });
 
       if (error) {
         console.error("[admin/images] list error:", error);
         return c.json({ error: error.message }, 500);
       }
 
-      const images = (objects ?? [])
-        .filter((o) => o.name && !o.name.endsWith("/"))
+      // Collect all file objects — walk into sub-folders to find actual images
+      const allObjects: Array<{ name: string; updated_at: string | null }> = [];
+      for (const entry of topLevel ?? []) {
+        if (entry.id) {
+          // Entry is a file — use its name directly
+          allObjects.push({ name: entry.name, updated_at: entry.updated_at ?? null });
+        } else {
+          // Entry is a folder — list its contents
+          const { data: files } = await supabaseAdmin()
+            .storage
+            .from("site-assets")
+            .list(`${kind}/${entry.name}`, { limit: 100 });
+          for (const file of files ?? []) {
+            if (file.id) {
+              allObjects.push({
+                name: `${entry.name}/${file.name}`,
+                updated_at: file.updated_at ?? null,
+              });
+            }
+          }
+        }
+      }
+
+      const images = allObjects
         .map((o) => {
           const fullPath = `${kind}/${o.name}`;
           const { data: pub } = supabaseAdmin()
@@ -1535,7 +1558,7 @@ export function mountRoutes(app: Hono) {
             url: pub.publicUrl,
             previewUrl: `/api/admin/images/serve/${fullPath}`,
             slug: slugMatch ? slugMatch[1] : null,
-            updatedAt: o.updated_at ?? null,
+            updatedAt: o.updated_at,
           };
         })
         .sort((a, b) => {
